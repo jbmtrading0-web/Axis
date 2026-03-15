@@ -5,6 +5,7 @@
 {% block topbar_actions %}
 <button class="btn btn-primary" onclick="abrirModalTransacao()">+ Nova Transação</button>
 <button class="btn btn-outline" onclick="abrirModalTransferencia()">⇄ Transferência</button>
+<button class="btn-help" onclick="openHelp('transacoes')" aria-label="Ajuda sobre Transações">❓ Ajuda</button>
 {% endblock %}
 
 {% block content %}
@@ -31,8 +32,8 @@
       <label>Status</label>
       <select id="f-status">
         <option value="">Todos</option>
-        <option value="realizado">Realizado</option>
-        <option value="previsto">Previsto</option>
+        <option value="realizado" id="opt-realizado">{{ 'Confirmado' if ui_mode == 'simples' else 'Realizado' }}</option>
+        <option value="previsto" id="opt-previsto">{{ 'Agendado' if ui_mode == 'simples' else 'Previsto' }}</option>
       </select>
     </div>
     <div class="filter-group">
@@ -81,6 +82,12 @@
 let todasCategorias = [], todasContas = [], todosCartoes = [];
 
 async function initTransacoes() {
+  // Update status filter labels based on ui_mode
+  const optReal = document.getElementById('opt-realizado');
+  const optPrev = document.getElementById('opt-previsto');
+  if (optReal) optReal.textContent = statusLabel('realizado');
+  if (optPrev) optPrev.textContent = statusLabel('previsto');
+
   await carregarSelects();
   // Default: current month
   const now = new Date();
@@ -140,7 +147,7 @@ function renderTransacoes(list) {
       <td>${t.categoria_nome ? `<span class="badge" style="background:${t.categoria_cor}20;color:${t.categoria_cor}">${escHtml(t.categoria_nome)}</span>` : '—'}</td>
       <td>${escHtml(t.subcategoria_nome || '—')}</td>
       <td>${escHtml(t.conta_nome || t.cartao_nome || '—')}</td>
-      <td><span class="badge badge-${t.status}">${t.status === 'realizado' ? 'Realizado' : 'Previsto'}</span></td>
+      <td><span class="badge ${statusBadgeClass(t.status)}">${statusLabel(t.status)}</span></td>
       <td class="text-right ${t.tipo === 'receita' ? 'positive' : 'negative'}">
         ${t.tipo === 'receita' ? '+' : '-'}${formatBRL(t.valor)}
       </td>
@@ -204,8 +211,8 @@ function buildFormTransacao(t) {
         <div class="form-group">
           <label>Status</label>
           <select name="status">
-            <option value="previsto" ${!t || t.status==='previsto' ? 'selected':''}>Previsto</option>
-            <option value="realizado" ${t && t.status==='realizado' ? 'selected':''}>Realizado</option>
+            <option value="previsto" ${!t || t.status==='previsto' ? 'selected':''}>${statusLabel('previsto')}</option>
+            <option value="realizado" ${t && t.status==='realizado' ? 'selected':''}>${statusLabel('realizado')}</option>
           </select>
         </div>
       </div>

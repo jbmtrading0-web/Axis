@@ -80,6 +80,16 @@ CREATE TABLE IF NOT EXISTS transacoes (
     FOREIGN KEY (transferencia_grupo_id) REFERENCES transferencias_grupos(id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS configuracoes (
+    chave TEXT PRIMARY KEY,
+    valor TEXT NOT NULL
+);
+
+-- Default configuration values
+INSERT OR IGNORE INTO configuracoes (chave, valor) VALUES
+('onboarding_completed', 'false'),
+('ui_mode', 'simples');
+
 -- Default categories
 INSERT OR IGNORE INTO categorias (id, nome, tipo, cor, icone) VALUES
 (1, 'Salário', 'receita', '#28a745', 'wallet'),

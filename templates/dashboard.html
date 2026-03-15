@@ -10,30 +10,31 @@
   </div>
   <input type="month" id="mes-picker" />
 </div>
+<button class="btn-help" onclick="openHelp('dashboard')" aria-label="Ajuda sobre o Dashboard">❓ Ajuda</button>
 {% endblock %}
 
 {% block content %}
 <!-- Summary cards -->
 <div class="summary-grid" id="summary-grid">
   <div class="card summary-card summary-receita">
-    <div class="summary-label">Receitas (realizadas)</div>
+    <div class="summary-label">Receitas (<span class="lbl-realizado">confirmadas</span>)</div>
     <div class="summary-value" id="val-receitas">R$ 0,00</div>
     <div class="summary-sub" id="val-receitas-prev"></div>
   </div>
   <div class="card summary-card summary-despesa">
-    <div class="summary-label">Despesas (realizadas)</div>
+    <div class="summary-label">Despesas (<span class="lbl-realizado">confirmadas</span>)</div>
     <div class="summary-value" id="val-despesas">R$ 0,00</div>
     <div class="summary-sub" id="val-despesas-prev"></div>
   </div>
   <div class="card summary-card summary-saldo">
     <div class="summary-label">Saldo Disponível</div>
     <div class="summary-value" id="val-saldo">R$ 0,00</div>
-    <div class="summary-sub">Realizado</div>
+    <div class="summary-sub lbl-realizado-text">Confirmado</div>
   </div>
   <div class="card summary-card summary-previsto">
     <div class="summary-label">Saldo Previsto</div>
     <div class="summary-value" id="val-previsto">R$ 0,00</div>
-    <div class="summary-sub">Receitas − Despesas previstas</div>
+    <div class="summary-sub">Receitas − Despesas <span class="lbl-agendado">agendadas</span></div>
   </div>
 </div>
 
@@ -114,8 +115,16 @@ async function carregarDashboard() {
   document.getElementById('val-despesas').textContent = formatBRL(data.despesas_realizadas);
   document.getElementById('val-saldo').textContent = formatBRL(data.saldo_disponivel);
   document.getElementById('val-previsto').textContent = formatBRL(data.saldo_previsto);
-  document.getElementById('val-receitas-prev').textContent = `Previsto: ${formatBRL(data.receitas_previstas)}`;
-  document.getElementById('val-despesas-prev').textContent = `Previsto: ${formatBRL(data.despesas_previstas)}`;
+  const agendadoLabel = statusLabel('previsto');
+  document.getElementById('val-receitas-prev').textContent = `${agendadoLabel}: ${formatBRL(data.receitas_previstas)}`;
+  document.getElementById('val-despesas-prev').textContent = `${agendadoLabel}: ${formatBRL(data.despesas_previstas)}`;
+
+  // Update mode-aware labels
+  const realLabel = statusLabel('realizado');
+  const agLabel = statusLabel('previsto');
+  document.querySelectorAll('.lbl-realizado').forEach(el => el.textContent = realLabel.toLowerCase());
+  document.querySelectorAll('.lbl-agendado').forEach(el => el.textContent = agLabel.toLowerCase());
+  document.querySelectorAll('.lbl-realizado-text').forEach(el => el.textContent = realLabel);
 
   colorirSaldo('val-saldo', data.saldo_disponivel);
   colorirSaldo('val-previsto', data.saldo_previsto);
@@ -194,7 +203,7 @@ function renderUltimas(list) {
       <td>${escHtml(t.descricao)}</td>
       <td>${t.categoria_nome ? `<span class="badge" style="background:${t.categoria_cor}20;color:${t.categoria_cor}">${escHtml(t.categoria_nome)}</span>` : '—'}</td>
       <td>${escHtml(t.conta_nome || t.cartao_nome || '—')}</td>
-      <td><span class="badge badge-${t.status}">${t.status === 'realizado' ? 'Realizado' : 'Previsto'}</span></td>
+      <td><span class="badge ${statusBadgeClass(t.status)}">${statusLabel(t.status)}</span></td>
       <td class="text-right ${t.tipo === 'receita' ? 'positive' : 'negative'}">
         ${t.tipo === 'receita' ? '+' : '-'}${formatBRL(t.valor)}
       </td>
