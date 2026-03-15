@@ -314,40 +314,65 @@ def api_dashboard():
     ultimo_dia = monthrange(ano, m)[1]
     fim = f"{ano:04d}-{m:02d}-{ultimo_dia:02d}"
 
+    # Hybrid "belongs to this month" filter (option 2):
+    #   - conta transactions: matched by transacoes.data (date of transaction)
+    #   - cartao transactions: matched by faturas.mes_referencia (invoice month)
+    #   - cartao without fatura: fallback to transacoes.data
+    # Requires LEFT JOIN faturas f ON t.fatura_id=f.id in the query.
+    # _MES_FILTER expects 5 positional parameters in this order:
+    #   (day_start, day_end, mes_referencia, day_start, day_end)
+    # where day_start/day_end are the first and last day of the target month
+    # and mes_referencia is the YYYY-MM string for that month.
+    _MES_FILTER = (
+        "(t.metodo_pagamento='conta' AND t.data BETWEEN ? AND ?)"
+        " OR (t.metodo_pagamento='cartao' AND t.fatura_id IS NOT NULL AND f.mes_referencia = ?)"
+        " OR (t.metodo_pagamento='cartao' AND t.fatura_id IS NULL AND t.data BETWEEN ? AND ?)"
+    )
+    # Pre-built params tuple for the current dashboard month.
+    # For other months (e.g. monthly bars) supply (mi, mf, bmes, mi, mf) inline.
+    _mf_params = (inicio, fim, mes, inicio, fim)
+
     # Summary
     receitas_realizadas = query_db(
         "SELECT COALESCE(SUM(valor),0) as v FROM transacoes WHERE tipo='receita' AND status='realizado' AND data BETWEEN ? AND ?",
         (inicio, fim), one=True
     )['v']
     despesas_realizadas = query_db(
-        "SELECT COALESCE(SUM(valor),0) as v FROM transacoes WHERE tipo='despesa' AND status='realizado' AND data BETWEEN ? AND ?",
-        (inicio, fim), one=True
+        "SELECT COALESCE(SUM(t.valor),0) as v FROM transacoes t"
+        " LEFT JOIN faturas f ON t.fatura_id=f.id"
+        f" WHERE t.tipo='despesa' AND t.status='realizado' AND ({_MES_FILTER})",
+        _mf_params, one=True
     )['v']
     receitas_previstas = query_db(
         "SELECT COALESCE(SUM(valor),0) as v FROM transacoes WHERE tipo='receita' AND data BETWEEN ? AND ?",
         (inicio, fim), one=True
     )['v']
     despesas_previstas = query_db(
-        "SELECT COALESCE(SUM(valor),0) as v FROM transacoes WHERE tipo='despesa' AND data BETWEEN ? AND ?",
-        (inicio, fim), one=True
+        "SELECT COALESCE(SUM(t.valor),0) as v FROM transacoes t"
+        " LEFT JOIN faturas f ON t.fatura_id=f.id"
+        f" WHERE t.tipo='despesa' AND ({_MES_FILTER})",
+        _mf_params, one=True
     )['v']
 
-    # Expenses by category (realized)
+    # Expenses by category (realized) – card expenses attributed to invoice month
     desp_cat = query_db(
-        """SELECT c.nome, c.cor, COALESCE(SUM(t.valor),0) as total
-           FROM transacoes t
-           LEFT JOIN categorias c ON t.categoria_id = c.id
-           WHERE t.tipo='despesa' AND t.status='realizado' AND t.data BETWEEN ? AND ?
-           GROUP BY t.categoria_id ORDER BY total DESC LIMIT 10""",
-        (inicio, fim)
+        "SELECT c.nome, c.cor, COALESCE(SUM(t.valor),0) as total"
+        " FROM transacoes t"
+        " LEFT JOIN categorias c ON t.categoria_id = c.id"
+        " LEFT JOIN faturas f ON t.fatura_id = f.id"
+        f" WHERE t.tipo='despesa' AND t.status='realizado' AND ({_MES_FILTER})"
+        " GROUP BY t.categoria_id ORDER BY total DESC LIMIT 10",
+        _mf_params
     )
 
     # Monthly bars – last 6 months
+    # Each bar uses the same hybrid rule: conta by date, cartao by fatura month.
     bars = []
     for i in range(5, -1, -1):
         d = date(ano, m, 1) - timedelta(days=i * 30)
         d = d.replace(day=1)
-        mi = f"{d.year:04d}-{d.month:02d}-01"
+        bmes = f"{d.year:04d}-{d.month:02d}"
+        mi = f"{bmes}-01"
         uf = monthrange(d.year, d.month)[1]
         mf = f"{d.year:04d}-{d.month:02d}-{uf:02d}"
         r = query_db(
@@ -355,22 +380,26 @@ def api_dashboard():
             (mi, mf), one=True
         )['v']
         d2 = query_db(
-            "SELECT COALESCE(SUM(valor),0) as v FROM transacoes WHERE tipo='despesa' AND status='realizado' AND data BETWEEN ? AND ?",
-            (mi, mf), one=True
+            "SELECT COALESCE(SUM(t.valor),0) as v FROM transacoes t"
+            " LEFT JOIN faturas f ON t.fatura_id=f.id"
+            f" WHERE t.tipo='despesa' AND t.status='realizado' AND ({_MES_FILTER})",
+            (mi, mf, bmes, mi, mf), one=True
         )['v']
         bars.append({'label': f"{d.month:02d}/{d.year}", 'receitas': r, 'despesas': d2})
 
-    # Latest transactions
+    # Latest transactions (option B): account transactions by date + card transactions
+    # by invoice month, consistent with how expenses are aggregated above.
     ultimas = query_db(
-        """SELECT t.*, c.nome as categoria_nome, c.cor as categoria_cor,
-                  ct.nome as conta_nome, ca.nome as cartao_nome
-           FROM transacoes t
-           LEFT JOIN categorias c ON t.categoria_id=c.id
-           LEFT JOIN contas ct ON t.conta_id=ct.id
-           LEFT JOIN cartoes ca ON t.cartao_id=ca.id
-           WHERE t.data BETWEEN ? AND ?
-           ORDER BY t.data DESC, t.id DESC LIMIT 10""",
-        (inicio, fim)
+        "SELECT t.*, c.nome as categoria_nome, c.cor as categoria_cor,"
+        " ct.nome as conta_nome, ca.nome as cartao_nome"
+        " FROM transacoes t"
+        " LEFT JOIN categorias c ON t.categoria_id=c.id"
+        " LEFT JOIN contas ct ON t.conta_id=ct.id"
+        " LEFT JOIN cartoes ca ON t.cartao_id=ca.id"
+        " LEFT JOIN faturas f ON t.fatura_id=f.id"
+        f" WHERE ({_MES_FILTER})"
+        " ORDER BY t.data DESC, t.id DESC LIMIT 10",
+        _mf_params
     )
 
     return jsonify({
