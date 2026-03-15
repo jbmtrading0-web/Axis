@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Faturas – Axis{% endblock %}
+{% block page_title %}Faturas de Cartão{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="filters-row">
+    <div class="filter-group">
+      <label>Cartão</label>
+      <select id="f-cartao-fatura">
+        <option value="">Todos os cartões</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div id="faturas-container">
+  <p class="text-muted text-center">Carregando...</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function initFaturas() {
+  const { cartoes } = await apiGet('/api/contas_cartoes');
+  const sel = document.getElementById('f-cartao-fatura');
+  cartoes.forEach(c => {
+    sel.innerHTML += `<option value="${c.id}">${escHtml(c.nome)}</option>`;
+  });
+  sel.addEventListener('change', carregarFaturas);
+  carregarFaturas();
+}
+
+async function carregarFaturas() {
+  const cartaoId = document.getElementById('f-cartao-fatura').value;
+  const url = '/api/faturas' + (cartaoId ? `?cartao_id=${cartaoId}` : '');
+  const faturas = await apiGet(url);
+  renderFaturas(faturas || []);
+}
+
+function renderFaturas(faturas) {
+  const container = document.getElementById('faturas-container');
+  if (!faturas.length) {
+    container.innerHTML = '<p class="text-muted text-center mt-4">Nenhuma fatura encontrada. Adicione transações com cartão para gerar faturas.</p>';
+    return;
+  }
+
+  container.innerHTML = faturas.map(f => {
+    const statusClass = f.status === 'paga' ? 'badge-realizado' : f.status === 'fechada' ? 'badge-fechada' : 'badge-previsto';
+    const statusLabel = { paga: 'Paga', fechada: 'Fechada', aberta: 'Aberta' }[f.status];
+    return `
+      <div class="card fatura-card">
+        <div class="fatura-header">
+          <div>
+            <strong>${escHtml(f.cartao_nome)}</strong>
+            <span class="text-muted"> — ${formatMesRef(f.mes_referencia)}</span>
+          </div>
+          <div class="fatura-header-right">
+            <span class="badge ${statusClass}">${statusLabel}</span>
+            <strong class="fatura-total">${formatBRL(f.total)}</strong>
+          </div>
+        </div>
+        <div class="fatura-info">
+          <span>📅 Fechamento: <strong>${formatDate(f.data_fechamento)}</strong></span>
+          <span>💳 Vencimento: <strong>${formatDate(f.data_vencimento)}</strong></span>
+        </div>
+        <div class="fatura-actions">
+          <button class="btn btn-sm btn-outline" onclick="verFatura(${f.id})">Ver transações</button>
+          ${f.status !== 'paga' ? `<button class="btn btn-sm btn-success" onclick="pagarFatura(${f.id})">Marcar como paga</button>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function verFatura(id) {
+  const f = await apiGet(`/api/faturas/${id}`);
+  if (!f) return;
+  const rows = (f.transacoes || []).map(t => `
+    <tr>
+      <td>${formatDate(t.data)}</td>
+      <td>${escHtml(t.descricao)}</td>
+      <td class="text-right negative">${formatBRL(t.valor)}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="3" class="text-center text-muted">Sem transações</td></tr>';
+
+  openModal(`Fatura ${formatMesRef(f.mes_referencia)} – ${escHtml(f.cartao_nome)}`, `
+    <table>
+      <thead><tr><th>Data</th><th>Descrição</th><th class="text-right">Valor</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr><td colspan="2"><strong>Total</strong></td><td class="text-right negative"><strong>${formatBRL(f.total)}</strong></td></tr>
+      </tfoot>
+    </table>
+  `);
+}
+
+async function pagarFatura(id) {
+  const { contas } = await apiGet('/api/contas_cartoes');
+  const contasOpts = contas.map(c => `<option value="${c.id}">${escHtml(c.nome)}</option>`).join('');
+  openModal('Pagar Fatura', `
+    <form id="form-pagar" onsubmit="confirmarPagamento(event, ${id})">
+      <div class="form-group">
+        <label>Conta de pagamento</label>
+        <select name="conta_id">
+          <option value="">Sem vínculo</option>
+          ${contasOpts}
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-success">Confirmar Pagamento</button>
+      </div>
+    </form>
+  `);
+}
+
+async function confirmarPagamento(e, id) {
+  e.preventDefault();
+  const fd = new FormData(document.getElementById('form-pagar'));
+  const body = {};
+  for (const [k, v] of fd.entries()) body[k] = v;
+  const ok = await apiPost(`/api/faturas/${id}/pagar`, body);
+  if (ok) { closeModal(); showToast('Fatura marcada como paga!', 'success'); carregarFaturas(); }
+}
+
+function formatMesRef(ref) {
+  if (!ref) return '';
+  const [y, m] = ref.split('-');
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return `${meses[parseInt(m)-1]}/${y}`;
+}
+
+document.addEventListener('DOMContentLoaded', initFaturas);
+</script>
+{% endblock %}

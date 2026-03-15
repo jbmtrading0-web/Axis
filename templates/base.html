@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Axis – Finanças{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="logo-icon">💰</span>
+      <span class="logo-text">Axis</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+        <span class="nav-icon">📊</span><span>Dashboard</span>
+      </a>
+      <a href="{{ url_for('transacoes') }}" class="nav-item {% if request.endpoint == 'transacoes' %}active{% endif %}">
+        <span class="nav-icon">💳</span><span>Transações</span>
+      </a>
+      <a href="{{ url_for('categorias') }}" class="nav-item {% if request.endpoint == 'categorias' %}active{% endif %}">
+        <span class="nav-icon">🏷️</span><span>Categorias</span>
+      </a>
+      <a href="{{ url_for('contas') }}" class="nav-item {% if request.endpoint == 'contas' %}active{% endif %}">
+        <span class="nav-icon">🏦</span><span>Contas</span>
+      </a>
+      <a href="{{ url_for('cartoes') }}" class="nav-item {% if request.endpoint == 'cartoes' %}active{% endif %}">
+        <span class="nav-icon">💳</span><span>Cartões</span>
+      </a>
+      <a href="{{ url_for('faturas') }}" class="nav-item {% if request.endpoint == 'faturas' %}active{% endif %}">
+        <span class="nav-icon">📋</span><span>Faturas</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main area -->
+  <div class="main-wrapper">
+    <header class="topbar">
+      <button class="btn-menu" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+      <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+      <div class="topbar-actions">{% block topbar_actions %}{% endblock %}</div>
+    </header>
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
+  <!-- Modal overlay -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModal()"></div>
+  <div class="modal" id="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <h3 id="modal-title">Título</h3>
+      <button class="modal-close" onclick="closeModal()" aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
