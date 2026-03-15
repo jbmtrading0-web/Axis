@@ -155,21 +155,21 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/dashboard-ui.js') }}"></script>
 <script>
-// ── Fluent colour palette for charts ──
+// ── Neon colour palette for charts ──
 var CHART_COLORS = {
-  receitas: '#107C10',
-  despesas: '#C50F1F',
-  primary:  '#0F6CBD',
-  gridLine: '#f0eeec',
-  tickColor:'#9B9997',
-  legendColor: '#424242',
+  receitas: '#10b981',
+  despesas: '#f43f5e',
+  primary:  '#4f8ef7',
+  gridLine: 'rgba(255, 255, 255, 0.05)',
+  tickColor:'rgba(226, 232, 248, 0.45)',
+  legendColor: 'rgba(226, 232, 248, 0.75)',
 };
 
 var SPARK_COLORS = {
-  receitas: '#107C10',
-  despesas: '#C50F1F',
-  saldo:    '#0F6CBD',
-  previsto: '#D97706',
+  receitas: '#10b981',
+  despesas: '#f43f5e',
+  saldo:    '#4f8ef7',
+  previsto: '#f59e0b',
 };
 
 var SKELETON_IDS = ['card-receitas', 'card-despesas', 'card-saldo', 'card-previsto'];
@@ -289,16 +289,16 @@ function renderChartDespCat(cats) {
       datasets: [{
         data: cats.map(c => c.total),
         backgroundColor: cats.map(c => c.cor),
-        borderWidth: 2,
-        borderColor: '#ffffff',
-        hoverBorderWidth: 3,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
+        hoverBorderWidth: 2,
         hoverOffset: 6,
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '62%',
+      cutout: '64%',
       plugins: {
         legend: {
           position: 'right',
@@ -310,6 +310,11 @@ function renderChartDespCat(cats) {
           }
         },
         tooltip: {
+          backgroundColor: 'rgba(9, 14, 32, 0.95)',
+          borderColor: 'rgba(79, 142, 247, 0.30)',
+          borderWidth: 1,
+          titleColor: '#e2e8f8',
+          bodyColor: 'rgba(226, 232, 248, 0.75)',
           callbacks: {
             label: ctx => ` ${ctx.label}: ${formatBRL(ctx.raw)}`
           }
@@ -330,14 +335,16 @@ function renderChartBarras(bars) {
         {
           label: 'Receitas',
           data: bars.map(b => b.receitas),
-          backgroundColor: 'rgba(16,124,16,0.70)',
+          backgroundColor: 'rgba(16, 185, 129, 0.65)',
+          hoverBackgroundColor: 'rgba(16, 185, 129, 0.85)',
           borderRadius: 5,
           borderSkipped: false,
         },
         {
           label: 'Despesas',
           data: bars.map(b => b.despesas),
-          backgroundColor: 'rgba(197,15,31,0.70)',
+          backgroundColor: 'rgba(244, 63, 94, 0.60)',
+          hoverBackgroundColor: 'rgba(244, 63, 94, 0.80)',
           borderRadius: 5,
           borderSkipped: false,
         }
@@ -355,6 +362,11 @@ function renderChartBarras(bars) {
           }
         },
         tooltip: {
+          backgroundColor: 'rgba(9, 14, 32, 0.95)',
+          borderColor: 'rgba(79, 142, 247, 0.30)',
+          borderWidth: 1,
+          titleColor: '#e2e8f8',
+          bodyColor: 'rgba(226, 232, 248, 0.75)',
           callbacks: {
             label: ctx => ` ${ctx.dataset.label}: ${formatBRL(ctx.raw)}`
           }
@@ -375,7 +387,7 @@ function renderChartBarras(bars) {
             callback: v => formatBRL(v),
           },
           grid: { color: CHART_COLORS.gridLine, drawBorder: false },
-          border: { dash: [4, 4] },
+          border: { dash: [3, 4] },
         }
       }
     }
