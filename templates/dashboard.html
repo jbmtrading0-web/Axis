@@ -4,7 +4,10 @@
 
 {% block topbar_actions %}
 <div class="period-picker">
-  <label for="mes-picker">Período:</label>
+  <div class="period-quick-btns">
+    <button class="btn-period" onclick="setPeriodRelativo(-1)">Mês anterior</button>
+    <button class="btn-period active" id="btn-este-mes" onclick="setPeriodRelativo(0)">Este mês</button>
+  </div>
   <input type="month" id="mes-picker" />
 </div>
 {% endblock %}
@@ -80,11 +83,25 @@
 <script>
 let chartDespCat = null, chartBarras = null;
 
+function clearActivePeriod() {
+  document.querySelectorAll('.btn-period').forEach(b => b.classList.remove('active'));
+}
+
 function initMes() {
   const picker = document.getElementById('mes-picker');
   const now = new Date();
   picker.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  picker.addEventListener('change', carregarDashboard);
+  picker.addEventListener('change', () => { clearActivePeriod(); carregarDashboard(); });
+  carregarDashboard();
+}
+
+function setPeriodRelativo(offset) {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('mes-picker').value = val;
+  document.querySelectorAll('.btn-period').forEach(b => b.classList.remove('active'));
+  if (offset === 0) document.getElementById('btn-este-mes').classList.add('active');
   carregarDashboard();
 }
 
@@ -126,13 +143,13 @@ function renderChartDespCat(cats) {
         data: cats.map(c => c.total),
         backgroundColor: cats.map(c => c.cor),
         borderWidth: 2,
-        borderColor: '#1e2433'
+        borderColor: '#fff'
       }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'right', labels: { color: '#c8cfe0', font: { size: 12 } } },
+        legend: { position: 'right', labels: { color: '#374151', font: { size: 12 } } },
         tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${formatBRL(ctx.raw)}` } }
       }
     }
@@ -154,12 +171,12 @@ function renderChartBarras(bars) {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#c8cfe0' } },
+        legend: { labels: { color: '#374151' } },
         tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${formatBRL(ctx.raw)}` } }
       },
       scales: {
-        x: { ticks: { color: '#8892a4' }, grid: { color: '#2d3447' } },
-        y: { ticks: { color: '#8892a4', callback: v => formatBRL(v) }, grid: { color: '#2d3447' } }
+        x: { ticks: { color: '#9ca3af' }, grid: { color: '#f3f4f6' } },
+        y: { ticks: { color: '#9ca3af', callback: v => formatBRL(v) }, grid: { color: '#f3f4f6' } }
       }
     }
   });
