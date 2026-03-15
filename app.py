@@ -475,7 +475,10 @@ def api_transacoes_criar():
     data_obj = date.fromisoformat(dt)
     ids_criados = []
 
-    def _inserir(data_t: date, parcela_atual=None, grupo_rec=None, fatura_id=None):
+    parcelamento_modo = data.get('parcelamento_modo', 'parcela')  # 'total' | 'parcela'
+
+    def _inserir(data_t: date, parcela_atual=None, grupo_rec=None, fatura_id=None, valor_t=None):
+        v = valor_t if valor_t is not None else valor
         c_id = cartao_id
         f_id = fatura_id
         if metodo == 'cartao' and c_id:
@@ -487,7 +490,7 @@ def api_transacoes_criar():
                 metodo_pagamento, conta_id, cartao_id, fatura_id, observacao,
                 recorrente, parcela_atual, total_parcelas, grupo_recorrencia)
                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (tipo, valor, data_t.isoformat(), descricao, status,
+            (tipo, v, data_t.isoformat(), descricao, status,
              categoria_id, subcategoria_id, metodo, conta_id if metodo == 'conta' else None,
              c_id if metodo == 'cartao' else None, f_id,
              observacao, recorrente, parcela_atual, total_parcelas, grupo_rec)
@@ -499,13 +502,21 @@ def api_transacoes_criar():
 
     if total_parcelas and total_parcelas > 1:
         grupo = str(uuid.uuid4())
+        if parcelamento_modo == 'total':
+            parcela_base = round(valor / total_parcelas, 2)
+            valores_parcelas = [parcela_base] * total_parcelas
+            diff = round(valor - parcela_base * total_parcelas, 2)
+            valores_parcelas[-1] = round(parcela_base + diff, 2)
+        else:
+            valores_parcelas = None
         for i in range(total_parcelas):
             m = data_obj.month + i
             y = data_obj.year + (m - 1) // 12
             m = ((m - 1) % 12) + 1
             last = monthrange(y, m)[1]
             d = date(y, m, min(data_obj.day, last))
-            ids_criados.append(_inserir(d, i + 1, grupo))
+            vt = valores_parcelas[i] if valores_parcelas is not None else None
+            ids_criados.append(_inserir(d, i + 1, grupo, valor_t=vt))
     elif recorrente and meses_recorrencia and meses_recorrencia > 1:
         grupo = str(uuid.uuid4())
         for i in range(meses_recorrencia):
@@ -602,6 +613,49 @@ def api_transacoes_delete_grupo(grupo):
         abort(404)
     faturas = {r['fatura_id'] for r in rows if r['fatura_id']}
     execute_db("DELETE FROM transacoes WHERE grupo_recorrencia=?", (grupo,))
+    for fid in faturas:
+        recalcular_total_fatura(fid)
+    return jsonify({'ok': True})
+
+
+@app.route('/api/transacoes/grupo/<grupo>', methods=['PUT'])
+def api_transacoes_update_grupo(grupo):
+    rows = query_db("SELECT id, fatura_id FROM transacoes WHERE grupo_recorrencia=?", (grupo,))
+    if not rows:
+        abort(404)
+    data = request.get_json(force=True)
+
+    fields = []
+    params = []
+
+    for field in ('tipo', 'descricao', 'status', 'observacao'):
+        if field in data:
+            fields.append(f'{field}=?')
+            params.append(data[field])
+
+    for field in ('categoria_id', 'subcategoria_id'):
+        if field in data:
+            fields.append(f'{field}=?')
+            params.append(data[field] or None)
+
+    if 'valor' in data:
+        try:
+            v = parse_money(data['valor'], allow_empty=False, field_name='valor')
+        except ValueError as e:
+            abort(400, str(e))
+        fields.append('valor=?')
+        params.append(v)
+
+    if not fields:
+        return jsonify({'ok': True})
+
+    params.append(grupo)
+    execute_db(
+        f"UPDATE transacoes SET {', '.join(fields)} WHERE grupo_recorrencia=?",
+        params
+    )
+
+    faturas = {r['fatura_id'] for r in rows if r['fatura_id']}
     for fid in faturas:
         recalcular_total_fatura(fid)
     return jsonify({'ok': True})

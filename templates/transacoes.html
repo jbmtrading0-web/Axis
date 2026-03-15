@@ -78,7 +78,7 @@
 
 {% block scripts %}
 <script>
-let todasCategorias = [], todasContas = [], todosCartoes = [];
+let todasCategorias = [], todasContas = [], todosCartoes = [], _pendingEdit = null;
 
 async function initTransacoes() {
   await carregarSelects();
@@ -262,12 +262,26 @@ function buildFormTransacao(t) {
             <label>Qtd. parcelas (mín. 2)</label>
             <input type="number" name="total_parcelas" id="inp-total-parcelas" min="2" max="60" value="2" />
           </div>
+          <div class="form-group" id="grp-parcelamento-modo" style="display:none">
+            <label>Valor refere-se a:</label>
+            <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-weight:normal">
+                <input type="radio" name="parcelamento_modo" value="parcela" checked style="width:auto" /> Valor da parcela
+              </label>
+              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-weight:normal">
+                <input type="radio" name="parcelamento_modo" value="total" style="width:auto" /> Total da compra
+              </label>
+            </div>
+          </div>
           <div class="form-group" id="grp-meses-recorrencia" style="">
             <label>Repetir por (meses)</label>
             <input type="number" name="meses_recorrencia" min="0" max="60" value="0" />
           </div>
         </div>
       </details>` : ''}
+      ${t && t.grupo_recorrencia && t.total_parcelas > 1 ? `
+      <input type="hidden" id="hdn-grupo" value="${escHtml(t.grupo_recorrencia)}" />
+      <input type="hidden" id="hdn-tp" value="${escHtml(String(t.total_parcelas))}" />` : ''}
       <div class="form-actions">
         <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
         <button type="submit" class="btn btn-primary">Salvar</button>
@@ -278,12 +292,15 @@ function buildFormTransacao(t) {
 
 function toggleParcelado(chk) {
   const grpParcelas = document.getElementById('grp-total-parcelas');
+  const grpModo = document.getElementById('grp-parcelamento-modo');
   const grpRecorrencia = document.getElementById('grp-meses-recorrencia');
   if (chk.checked) {
     grpParcelas.style.display = '';
+    grpModo.style.display = '';
     grpRecorrencia.style.display = 'none';
   } else {
     grpParcelas.style.display = 'none';
+    grpModo.style.display = 'none';
     grpRecorrencia.style.display = '';
   }
 }
@@ -329,22 +346,73 @@ async function salvarTransacao(e, id) {
 
   // Clean up 0 values
   const chkParcelado = document.getElementById('chk-parcelado');
-  if (!chkParcelado || !chkParcelado.checked || !body.total_parcelas || body.total_parcelas === '0') delete body.total_parcelas;
+  if (!chkParcelado || !chkParcelado.checked || !body.total_parcelas || body.total_parcelas === '0') {
+    delete body.total_parcelas;
+    delete body.parcelamento_modo;
+  }
   if (!body.meses_recorrencia || body.meses_recorrencia === '0') delete body.meses_recorrencia;
   if (!body.categoria_id) delete body.categoria_id;
   if (!body.subcategoria_id) delete body.subcategoria_id;
   if (!body.conta_id) delete body.conta_id;
   if (!body.cartao_id) delete body.cartao_id;
 
-  let ok;
   if (id) {
-    ok = await apiPut(`/api/transacoes/${id}`, body);
+    const grupoEl = document.getElementById('hdn-grupo');
+    const tpEl = document.getElementById('hdn-tp');
+    const grupo = grupoEl ? grupoEl.value : null;
+    const totalP = tpEl ? parseInt(tpEl.value) : 0;
+
+    if (grupo && totalP > 1) {
+      _pendingEdit = { id, grupo, totalP, body };
+      closeModal();
+      openModal('Editar Transação', `
+        <p>Esta transação faz parte de um grupo de <strong>${totalP} parcelas</strong>.</p>
+        <p>O que você deseja editar?</p>
+        <div class="form-actions" style="flex-direction:column;gap:.5rem">
+          <button class="btn btn-primary" onclick="confirmarEditarGrupo()">✏️ Todas as parcelas (${totalP})</button>
+          <button class="btn btn-outline" onclick="confirmarEditarSomente()">Somente esta parcela</button>
+          <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        </div>
+      `);
+      return;
+    }
+
+    const ok = await apiPut(`/api/transacoes/${id}`, body);
+    if (ok) {
+      closeModal();
+      showToast('Transação atualizada!', 'success');
+      carregarTransacoes();
+    }
   } else {
-    ok = await apiPost('/api/transacoes', body);
+    const ok = await apiPost('/api/transacoes', body);
+    if (ok) {
+      closeModal();
+      showToast('Transação criada!', 'success');
+      carregarTransacoes();
+    }
   }
+}
+
+async function confirmarEditarGrupo() {
+  if (!_pendingEdit) return;
+  const { grupo, body } = _pendingEdit;
+  _pendingEdit = null;
+  closeModal();
+  const ok = await apiPut(`/api/transacoes/grupo/${grupo}`, body);
   if (ok) {
-    closeModal();
-    showToast(id ? 'Transação atualizada!' : 'Transação criada!', 'success');
+    showToast('Todas as parcelas atualizadas!', 'success');
+    carregarTransacoes();
+  }
+}
+
+async function confirmarEditarSomente() {
+  if (!_pendingEdit) return;
+  const { id, body } = _pendingEdit;
+  _pendingEdit = null;
+  closeModal();
+  const ok = await apiPut(`/api/transacoes/${id}`, body);
+  if (ok) {
+    showToast('Transação atualizada!', 'success');
     carregarTransacoes();
   }
 }
