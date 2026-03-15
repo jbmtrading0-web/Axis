@@ -89,8 +89,15 @@ async function _request(method, url, body = null) {
   try {
     const res = await fetch(url, opts);
     if (!res.ok) {
-      const err = await res.text();
-      showToast(`Erro ${res.status}: ${err}`, 'error');
+      const ct = res.headers.get('Content-Type') || '';
+      let errMsg;
+      if (ct.includes('application/json')) {
+        const errData = await res.json();
+        errMsg = errData.erro || errData.message || JSON.stringify(errData);
+      } else {
+        errMsg = await res.text();
+      }
+      showToast(`Erro ${res.status}: ${errMsg}`, 'error');
       return null;
     }
     const ct = res.headers.get('Content-Type') || '';

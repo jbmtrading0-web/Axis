@@ -95,6 +95,88 @@ def parse_money(v, default=0.0):
 
 
 # ─────────────────────────────────────────────
+# Money parsing helper
+# ─────────────────────────────────────────────
+
+def parse_money(value, *, allow_empty=True, field_name='valor'):
+    """Parse monetary values accepting PT-BR (comma) and EN (period) formats.
+
+    Examples:
+        "10"       → 10.0
+        "10,0"     → 10.0
+        "10,00"    → 10.0
+        "10.50"    → 10.5
+        "1.234,56" → 1234.56
+        "1,234.56" → 1234.56
+        "" / None  → 0.0 if allow_empty=True, else raises ValueError
+    """
+    if value is None or (isinstance(value, str) and value.strip() == ''):
+        if allow_empty:
+            return 0.0
+        raise ValueError(f'O campo "{field_name}" é obrigatório.')
+
+    if isinstance(value, (int, float)):
+        return round(float(value), 2)
+
+    s = str(value).strip().replace('R$', '').replace(' ', '').strip()
+
+    if not s:
+        if allow_empty:
+            return 0.0
+        raise ValueError(f'O campo "{field_name}" é obrigatório.')
+
+    comma_pos = s.rfind(',')
+    dot_pos = s.rfind('.')
+
+    if comma_pos != -1 and dot_pos != -1:
+        # Both separators present – determine which is the decimal
+        if comma_pos > dot_pos:
+            # PT-BR format: "1.234,56" → remove dots, replace comma with dot
+            if s.count(',') > 1:
+                raise ValueError(
+                    f'Valor inválido para "{field_name}": "{value}". '
+                    'Use o formato 10,50 ou 10.50.'
+                )
+            s = s.replace('.', '').replace(',', '.')
+        else:
+            # EN format: "1,234.56" → remove commas
+            if s.count('.') > 1:
+                raise ValueError(
+                    f'Valor inválido para "{field_name}": "{value}". '
+                    'Use o formato 10,50 ou 10.50.'
+                )
+            s = s.replace(',', '')
+    elif comma_pos != -1:
+        # Only comma: PT-BR decimal "10,50"
+        if s.count(',') > 1:
+            raise ValueError(
+                f'Valor inválido para "{field_name}": "{value}". '
+                'Use o formato 10,50 ou 10.50.'
+            )
+        s = s.replace(',', '.')
+    # else only dot or no separator: already a valid float string
+
+    try:
+        result = float(s)
+    except ValueError:
+        raise ValueError(
+            f'Valor inválido para "{field_name}": "{value}". '
+            'Use o formato 10,50 ou 10.50.'
+        )
+
+    return round(result, 2)
+
+
+# ─────────────────────────────────────────────
+# Error handlers
+# ─────────────────────────────────────────────
+
+@app.errorhandler(400)
+def bad_request(e):
+    return jsonify({'erro': str(e.description)}), 400
+
+
+# ─────────────────────────────────────────────
 # Credit card / invoice helpers
 # ─────────────────────────────────────────────
 
@@ -366,7 +448,10 @@ def api_transacoes_criar():
     data = request.get_json(force=True)
 
     tipo = data.get('tipo')
-    valor = float(data.get('valor', 0))
+    try:
+        valor = parse_money(data.get('valor'), allow_empty=False, field_name='valor')
+    except ValueError as e:
+        abort(400, str(e))
     dt = data.get('data')
     descricao = data.get('descricao', '').strip()
     status = data.get('status', 'previsto')
@@ -450,7 +535,14 @@ def api_transacoes_update(tid):
     data = request.get_json(force=True)
 
     tipo = data.get('tipo', existing['tipo'])
-    valor = float(data.get('valor', existing['valor']))
+    try:
+        valor = parse_money(
+            data.get('valor', existing['valor']),
+            allow_empty=False,
+            field_name='valor'
+        )
+    except ValueError as e:
+        abort(400, str(e))
     dt = data.get('data', existing['data'])
     descricao = data.get('descricao', existing['descricao'])
     status = data.get('status', existing['status'])
@@ -612,9 +704,12 @@ def api_contas_list():
 def api_contas_criar():
     data = request.get_json(force=True)
     nome = data.get('nome', '').strip()
-    saldo_inicial = parse_money(data.get('saldo_inicial', 0))
+    try:
+        saldo_inicial = parse_money(data.get('saldo_inicial'), allow_empty=True, field_name='saldo_inicial')
+    except ValueError as e:
+        abort(400, str(e))
     if not nome:
-        abort(400)
+        abort(400, 'O campo "nome" é obrigatório.')
     cur = execute_db("INSERT INTO contas (nome, saldo_inicial) VALUES (?,?)", (nome, saldo_inicial))
     return jsonify({'id': cur.lastrowid}), 201
 
@@ -622,8 +717,12 @@ def api_contas_criar():
 @app.route('/api/contas/<int:cid>', methods=['PUT'])
 def api_contas_update(cid):
     data = request.get_json(force=True)
+    try:
+        saldo_inicial = parse_money(data.get('saldo_inicial'), allow_empty=True, field_name='saldo_inicial')
+    except ValueError as e:
+        abort(400, str(e))
     execute_db("UPDATE contas SET nome=?, saldo_inicial=? WHERE id=?",
-               (data['nome'], parse_money(data.get('saldo_inicial', 0)), cid))
+               (data['nome'], saldo_inicial, cid))
     return jsonify({'ok': True})
 
 
@@ -748,7 +847,10 @@ def api_transferencias_criar():
     data = request.get_json(force=True)
     conta_origem = data.get('conta_origem_id')
     conta_destino = data.get('conta_destino_id')
-    valor = float(data.get('valor', 0))
+    try:
+        valor = parse_money(data.get('valor'), allow_empty=False, field_name='valor')
+    except ValueError as e:
+        abort(400, str(e))
     dt = data.get('data', date.today().isoformat())
     descricao = data.get('descricao', 'Transferência')
     status = data.get('status', 'realizado')
