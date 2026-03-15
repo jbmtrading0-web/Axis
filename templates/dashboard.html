@@ -5,10 +5,17 @@
 {% block topbar_actions %}
 <div class="period-picker">
   <div class="period-quick-btns">
-    <button class="btn-period" onclick="setPeriodRelativo(-1)">Mês anterior</button>
-    <button class="btn-period active" id="btn-este-mes" onclick="setPeriodRelativo(0)">Este mês</button>
+    <button class="btn-period" onclick="navMes(-1)" aria-label="Ir para o mês anterior">Mês anterior</button>
+    <button class="btn-period" id="btn-este-mes" onclick="setPeriodRelativo(0)" aria-label="Ir para o mês atual">Este mês</button>
+    <button class="btn-period" id="btn-proximo-mes" onclick="navMes(1)" aria-label="Ir para o próximo mês">Próximo mês</button>
   </div>
-  <input type="month" id="mes-picker" />
+  <div class="month-nav">
+    <button class="btn-month-arrow" onclick="navMes(-1)" aria-label="Mês anterior">&#9664;</button>
+    <button class="btn-month-label" id="btn-month-label" onclick="abrirPickerMes()"
+            aria-label="Selecionar mês" title="Clique para selecionar um mês específico">—</button>
+    <button class="btn-month-arrow" onclick="navMes(1)" aria-label="Próximo mês">&#9654;</button>
+    <input type="month" id="mes-picker" aria-label="Selecionar mês" tabindex="-1" />
+  </div>
 </div>
 {% endblock %}
 
@@ -176,23 +183,68 @@ var SKELETON_IDS = ['card-receitas', 'card-despesas', 'card-saldo', 'card-previs
 
 let chartDespCat = null, chartBarras = null;
 
-function clearActivePeriod() {
-  document.querySelectorAll('.btn-period').forEach(b => b.classList.remove('active'));
+const MONTH_KEY = 'axis.dashboard.month';
+
+function _currentMonthVal() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 }
 
-const MONTH_KEY = 'axis.dashboard.month';
+function updateActiveState() {
+  const picker = document.getElementById('mes-picker');
+  document.querySelectorAll('.btn-period').forEach(b => b.classList.remove('active'));
+  if (picker.value === _currentMonthVal()) {
+    document.getElementById('btn-este-mes').classList.add('active');
+  }
+}
+
+function updateMonthLabel() {
+  const picker = document.getElementById('mes-picker');
+  const [y, m] = picker.value.split('-').map(Number);
+  let label;
+  try {
+    label = new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  } catch (e) {
+    label = `${String(m).padStart(2,'0')}/${y}`;
+  }
+  document.getElementById('btn-month-label').textContent = label;
+}
+
+function abrirPickerMes() {
+  const picker = document.getElementById('mes-picker');
+  // showPicker() programmatically opens the native month picker (requires a user-gesture);
+  // fall back to focus() for older browsers that don't support the method.
+  if (typeof picker.showPicker === 'function') {
+    picker.showPicker();
+  } else {
+    picker.focus();
+  }
+}
+
+function navMes(delta) {
+  const picker = document.getElementById('mes-picker');
+  const [y, m] = picker.value.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  picker.value = val;
+  localStorage.setItem(MONTH_KEY, val);
+  updateActiveState();
+  updateMonthLabel();
+  carregarDashboard();
+}
 
 function initMes() {
   const picker = document.getElementById('mes-picker');
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const saved = localStorage.getItem(MONTH_KEY);
-  picker.value = saved || currentMonth;
+  picker.value = saved || _currentMonthVal();
   picker.addEventListener('change', () => {
     localStorage.setItem(MONTH_KEY, picker.value);
-    clearActivePeriod();
+    updateActiveState();
+    updateMonthLabel();
     carregarDashboard();
   });
+  updateActiveState();
+  updateMonthLabel();
   // Show skeletons immediately on first load
   showSkeletons(SKELETON_IDS);
   carregarDashboard();
@@ -204,8 +256,8 @@ function setPeriodRelativo(offset) {
   const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   document.getElementById('mes-picker').value = val;
   localStorage.setItem(MONTH_KEY, val);
-  document.querySelectorAll('.btn-period').forEach(b => b.classList.remove('active'));
-  if (offset === 0) document.getElementById('btn-este-mes').classList.add('active');
+  updateActiveState();
+  updateMonthLabel();
   carregarDashboard();
 }
 

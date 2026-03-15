@@ -477,7 +477,6 @@ input::placeholder, textarea::placeholder { color: var(--color-text-disabled); }
   font-size: 13px;
   color: var(--color-text-muted);
 }
-.period-picker input { width: 140px; }
 
 .mt-2 { margin-top: 8px; }
 .mt-4 { margin-top: 16px; }
