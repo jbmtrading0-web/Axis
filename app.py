@@ -957,6 +957,102 @@ def api_faturas_pagar(fid):
     return jsonify({'ok': True})
 
 
+@app.route('/api/faturas/recalcular', methods=['POST'])
+def api_faturas_recalcular():
+    """Recalculate invoice assignments for credit-card transactions.
+
+    Input JSON (one of two interval forms):
+        { "cartao_id": 1, "months_back": 6 }
+        { "cartao_id": 1, "data_inicio": "2025-01-01", "data_fim": "2025-12-31" }
+
+    Returns a summary:
+        {
+            "total_analisado": N,
+            "total_movido": M,
+            "erros": [...],
+            "movimentos": [{"transacao_id":…, "fatura_origem_id":…, "fatura_destino_id":…}, …]
+        }
+    """
+    data = request.get_json(force=True) or {}
+
+    cartao_id = data.get('cartao_id')
+    if not cartao_id:
+        abort(400, "cartao_id é obrigatório")
+
+    cartao = query_db("SELECT * FROM cartoes WHERE id=?", (cartao_id,), one=True)
+    if not cartao:
+        abort(404, "Cartão não encontrado")
+
+    # Resolve date range
+    if 'data_inicio' in data and 'data_fim' in data:
+        try:
+            data_inicio = date.fromisoformat(str(data['data_inicio']))
+            data_fim = date.fromisoformat(str(data['data_fim']))
+        except ValueError:
+            abort(400, "data_inicio e data_fim devem estar no formato YYYY-MM-DD")
+    else:
+        try:
+            months_back = int(data.get('months_back', 6))
+        except (TypeError, ValueError):
+            abort(400, "months_back deve ser um número inteiro")
+        today = date.today()
+        # Go back N months from the 1st of the current month
+        m = today.month - months_back
+        y = today.year + (m - 1) // 12
+        m = ((m - 1) % 12) + 1
+        data_inicio = date(y, m, 1)
+        data_fim = today
+
+    if data_inicio > data_fim:
+        abort(400, "data_inicio não pode ser posterior a data_fim")
+
+    # Fetch card transactions in the date range
+    transacoes = query_db(
+        """SELECT id, data, fatura_id FROM transacoes
+           WHERE cartao_id=? AND metodo_pagamento='cartao'
+           AND date(data) BETWEEN ? AND ?
+           ORDER BY data""",
+        (cartao_id, data_inicio.isoformat(), data_fim.isoformat())
+    )
+
+    total_analisado = len(transacoes)
+    total_movido = 0
+    movimentos = []
+    erros = []
+
+    for t in transacoes:
+        try:
+            data_compra = date.fromisoformat(str(t['data'])[:10])
+            fatura_atual_id = t['fatura_id']
+            nova_fatura_id = obter_ou_criar_fatura(cartao_id, data_compra)
+
+            if nova_fatura_id != fatura_atual_id:
+                execute_db(
+                    "UPDATE transacoes SET fatura_id=? WHERE id=?",
+                    (nova_fatura_id, t['id'])
+                )
+                # Update totals for both affected invoices
+                if fatura_atual_id:
+                    recalcular_total_fatura(fatura_atual_id)
+                recalcular_total_fatura(nova_fatura_id)
+
+                movimentos.append({
+                    'transacao_id': t['id'],
+                    'fatura_origem_id': fatura_atual_id,
+                    'fatura_destino_id': nova_fatura_id,
+                })
+                total_movido += 1
+        except Exception as exc:
+            erros.append({'transacao_id': t['id'], 'erro': str(exc)})
+
+    return jsonify({
+        'total_analisado': total_analisado,
+        'total_movido': total_movido,
+        'movimentos': movimentos,
+        'erros': erros,
+    })
+
+
 # ─────────────────────────────────────────────
 # API – Transferências
 # ─────────────────────────────────────────────

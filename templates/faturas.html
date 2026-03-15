@@ -11,6 +11,11 @@
         <option value="">Todos os cartões</option>
       </select>
     </div>
+    <div class="filter-group filter-group--actions">
+      <button class="btn btn-outline" onclick="abrirModalRecalcular()" aria-label="Recalcular faturas do cartão">
+        ↻ Recalcular faturas
+      </button>
+    </div>
   </div>
 </div>
 
@@ -131,6 +136,107 @@ function formatMesRef(ref) {
   return `${meses[parseInt(m)-1]}/${y}`;
 }
 
-document.addEventListener('DOMContentLoaded', initFaturas);
-</script>
+function abrirModalRecalcular() {
+  const sel = document.getElementById('f-cartao-fatura');
+  const cartaoId = sel.value;
+  const cartaoOpts = Array.from(sel.options).filter(o => o.value)
+    .map(o => `<option value="${o.value}"${o.value === cartaoId ? ' selected' : ''}>${escHtml(o.text)}</option>`)
+    .join('');
+
+  openModal('Recalcular Faturas', `
+    <form id="form-recalcular" onsubmit="confirmarRecalcular(event)">
+      <p class="text-muted" style="margin-bottom:1rem;">
+        ⚠️ Esta ação revisa o vínculo de cada transação com sua fatura correta, usando a regra atual do cartão.
+        <strong>Transações podem ser movidas mesmo que a fatura esteja paga.</strong>
+        Apenas o vínculo com a fatura é alterado; valores e datas não são modificados.
+      </p>
+      <div class="form-group">
+        <label for="rec-cartao">Cartão <span aria-hidden="true">*</span></label>
+        <select id="rec-cartao" name="cartao_id" required aria-required="true">
+          <option value="">Selecione um cartão</option>
+          ${cartaoOpts}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Intervalo</label>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem;">
+          <button type="button" class="btn btn-sm btn-outline" onclick="setPreset(3, this)">3 meses</button>
+          <button type="button" class="btn btn-sm btn-outline preset-btn preset-active" onclick="setPreset(6, this)">6 meses</button>
+          <button type="button" class="btn btn-sm btn-outline" onclick="setPreset(12, this)">12 meses</button>
+          <button type="button" class="btn btn-sm btn-outline" onclick="setPreset('custom', this)">Personalizado</button>
+        </div>
+        <div id="rec-custom-range" style="display:none;gap:.5rem;flex-wrap:wrap;">
+          <div class="form-group" style="margin:0;flex:1;">
+            <label for="rec-inicio">De</label>
+            <input type="date" id="rec-inicio" name="data_inicio" aria-label="Data de início">
+          </div>
+          <div class="form-group" style="margin:0;flex:1;">
+            <label for="rec-fim">Até</label>
+            <input type="date" id="rec-fim" name="data_fim" aria-label="Data de fim">
+          </div>
+        </div>
+        <input type="hidden" id="rec-months" name="months_back" value="6">
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Recalcular</button>
+      </div>
+    </form>
+  `);
+  // Allow a brief render cycle for the modal DOM to be ready before focusing
+  setTimeout(() => { const el = document.getElementById('rec-cartao'); if (el) el.focus(); }, 50);
+}
+
+function setPreset(val, btn) {
+  const customDiv = document.getElementById('rec-custom-range');
+  const monthsInput = document.getElementById('rec-months');
+  const inicioInput = document.getElementById('rec-inicio');
+  const fimInput = document.getElementById('rec-fim');
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('preset-active'));
+  btn.classList.add('preset-active');
+  if (val === 'custom') {
+    customDiv.style.display = 'flex';
+    monthsInput.value = '';
+    inicioInput.required = true;
+    fimInput.required = true;
+  } else {
+    customDiv.style.display = 'none';
+    monthsInput.value = val;
+    inicioInput.required = false;
+    fimInput.required = false;
+  }
+}
+
+async function confirmarRecalcular(e) {
+  e.preventDefault();
+  const form = document.getElementById('form-recalcular');
+  const fd = new FormData(form);
+  const body = {};
+  for (const [k, v] of fd.entries()) { if (v !== '') body[k] = v; }
+  if (!body.cartao_id) { showToast('Selecione um cartão.', 'error'); return; }
+  // Convert numeric fields
+  if (body.months_back) body.months_back = parseInt(body.months_back, 10);
+  if (body.cartao_id) body.cartao_id = parseInt(body.cartao_id, 10);
+
+  const submitBtn = form.querySelector('[type=submit]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Recalculando…';
+
+  const res = await apiPost('/api/faturas/recalcular', body);
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'Recalcular';
+
+  if (res) {
+    const errosTxt = res.erros && res.erros.length
+      ? `<br><small class="text-muted">${res.erros.length} erro(s) ignorado(s).</small>` : '';
+    closeModal();
+    showToast(
+      `Recálculo concluído: ${res.total_movido} de ${res.total_analisado} transação(ões) movida(s).${errosTxt}`,
+      res.erros && res.erros.length ? 'warning' : 'success'
+    );
+    carregarFaturas();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initFaturas);</script>
 {% endblock %}
