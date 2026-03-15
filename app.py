@@ -58,6 +58,41 @@ def execute_db(query, args=()):
     return cur
 
 
+def parse_money(v, default=0.0):
+    """Parse monetary values accepting None, empty string, and pt-BR comma notation.
+
+    Examples:
+        parse_money('')         -> 0.0
+        parse_money(None)       -> 0.0
+        parse_money('10,50')    -> 10.5
+        parse_money('1.234,56') -> 1234.56
+        parse_money('10.5')     -> 10.5
+        parse_money('1,234.56') -> 1234.56
+    """
+    if v is None:
+        return float(default)
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip()
+    if s == '':
+        return float(default)
+    has_dot = '.' in s
+    has_comma = ',' in s
+    if has_dot and has_comma:
+        # Determine format by which separator appears last
+        if s.rindex('.') > s.rindex(','):
+            # en-US: "1,234.56" — remove commas
+            s = s.replace(',', '')
+        else:
+            # pt-BR: "1.234,56" — remove dots, swap comma to dot
+            s = s.replace('.', '').replace(',', '.')
+    elif has_comma:
+        # pt-BR decimal only: "10,50" -> "10.50"
+        s = s.replace(',', '.')
+    # elif has_dot or neither: already valid float string ("10.5" or "10")
+    return float(s)
+
+
 # ─────────────────────────────────────────────
 # Credit card / invoice helpers
 # ─────────────────────────────────────────────
@@ -576,7 +611,7 @@ def api_contas_list():
 def api_contas_criar():
     data = request.get_json(force=True)
     nome = data.get('nome', '').strip()
-    saldo_inicial = float(data.get('saldo_inicial', 0))
+    saldo_inicial = parse_money(data.get('saldo_inicial', 0))
     if not nome:
         abort(400)
     cur = execute_db("INSERT INTO contas (nome, saldo_inicial) VALUES (?,?)", (nome, saldo_inicial))
@@ -587,7 +622,7 @@ def api_contas_criar():
 def api_contas_update(cid):
     data = request.get_json(force=True)
     execute_db("UPDATE contas SET nome=?, saldo_inicial=? WHERE id=?",
-               (data['nome'], float(data.get('saldo_inicial', 0)), cid))
+               (data['nome'], parse_money(data.get('saldo_inicial', 0)), cid))
     return jsonify({'ok': True})
 
 
