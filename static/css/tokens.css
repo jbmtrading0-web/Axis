@@ -1,69 +1,93 @@
-/* ─── Axis Design Tokens – Microsoft Fluent Enterprise ─── */
+/* ─── Axis Design Tokens – Dark Neon Premium ─── */
 
 :root {
-  /* ── Colour palette ── */
-  --color-bg:         #F3F5F7;
-  --color-surface:    #FFFFFF;
-  --color-surface-2:  #F8FAFB;
-  --color-border:     #E1DFDD;
-  --color-border-strong: #C8C6C4;
+  /* ── Deep backgrounds ── */
+  --bg-0:    #030712;
+  --bg-1:    #070d1a;
+  --panel:   rgba(10, 16, 36, 0.88);
+  --panel-2: rgba(14, 22, 48, 0.75);
 
-  --color-text:       #1A1A1A;
-  --color-text-muted: #616161;
-  --color-text-disabled: #A19F9D;
+  /* ── Colour tokens (used by all components) ── */
+  --color-bg:          var(--bg-1);
+  --color-surface:     rgba(11, 17, 38, 0.92);
+  --color-surface-2:   rgba(16, 24, 52, 0.75);
+  --color-border:      rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.13);
 
-  --color-primary:        #0F6CBD;
-  --color-primary-hover:  #115EA3;
-  --color-primary-active: #0E4775;
-  --color-primary-subtle: #EBF3FC;
-  --color-primary-subtle-hover: #DAEAF9;
+  /* ── Text ── */
+  --text:              #e2e8f8;
+  --muted:             #5c6b8a;
+  --color-text:        #e2e8f8;
+  --color-text-muted:  #5c6b8a;
+  --color-text-disabled: rgba(226, 232, 248, 0.28);
 
-  --color-danger:         #C50F1F;
-  --color-danger-hover:   #A00E1A;
-  --color-danger-subtle:  #FDE7E9;
+  /* ── Primary accent – electric blue ── */
+  --primary:                  #4f8ef7;
+  --color-primary:            #4f8ef7;
+  --color-primary-hover:      #6ba3ff;
+  --color-primary-active:     #3a7ae0;
+  --color-primary-subtle:     rgba(79, 142, 247, 0.12);
+  --color-primary-subtle-hover: rgba(79, 142, 247, 0.22);
 
-  --color-success:        #107C10;
-  --color-success-hover:  #0B6A0B;
-  --color-success-subtle: #DFF6DD;
+  /* ── Extra neon accents ── */
+  --accent-pink:   #f472b6;
+  --accent-purple: #a78bfa;
+  --accent-cyan:   #22d3ee;
 
-  --color-warning:        #8A5700;
-  --color-warning-subtle: #FFF4CE;
+  /* ── Semantic colours ── */
+  --success:              #10b981;
+  --danger:               #f43f5e;
+  --warning:              #f59e0b;
 
-  --color-forecast:       #D97706;
-  --color-forecast-subtle: #FEF3C7;
+  --color-success:        #10b981;
+  --color-success-hover:  #0d9e6e;
+  --color-success-subtle: rgba(16, 185, 129, 0.12);
 
-  --color-info-subtle:    #EBF3FC;
+  --color-danger:         #f43f5e;
+  --color-danger-hover:   #e02d4a;
+  --color-danger-subtle:  rgba(244, 63, 94, 0.12);
 
-  /* ── Sidebar specific ── */
-  --sidebar-w:        220px;
+  --color-warning:        #f59e0b;
+  --color-warning-subtle: rgba(245, 158, 11, 0.12);
+
+  --color-forecast:        #f59e0b;
+  --color-forecast-subtle: rgba(245, 158, 11, 0.12);
+  --color-info-subtle:     rgba(79, 142, 247, 0.12);
+
+  /* ── Glow tokens (controlled, not overdone) ── */
+  --glow-primary: 0 0 18px rgba(79, 142, 247, 0.50), 0 0 36px rgba(79, 142, 247, 0.20);
+  --glow-pink:    0 0 18px rgba(244, 114, 182, 0.50), 0 0 36px rgba(244, 114, 182, 0.20);
+  --glow-purple:  0 0 18px rgba(167, 139, 250, 0.45), 0 0 32px rgba(167, 139, 250, 0.18);
+  --glow-cyan:    0 0 18px rgba(34, 211, 238, 0.45),  0 0 32px rgba(34, 211, 238, 0.18);
+  --glow-success: 0 0 16px rgba(16, 185, 129, 0.40),  0 0 28px rgba(16, 185, 129, 0.16);
+  --glow-danger:  0 0 16px rgba(244, 63, 94, 0.40),   0 0 28px rgba(244, 63, 94, 0.16);
+
+  /* ── Sidebar ── */
+  --sidebar-w:           220px;
   --sidebar-w-collapsed: 52px;
-  --sidebar-bg:       #FFFFFF;
-  --topbar-h:         48px;
+  --sidebar-bg:          rgba(5, 9, 20, 0.94);
+  --topbar-h:            52px;
+
+  /* ── Glass / Mica ── */
+  --mica-bg:      rgba(4, 7, 18, 0.80);
+  --mica-blur:    18px;
+  --mica-sidebar: rgba(5, 9, 20, 0.94);
+  --glass-border: rgba(255, 255, 255, 0.08);
 
   /* ── Radius ── */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
   --radius-pill: 100px;
 
-  /* ── Shadows (elevation levels 1-4) ── */
-  --shadow-1: 0 1px 2px rgba(0,0,0,0.07), 0 1px 1px rgba(0,0,0,0.04);
-  --shadow-2: 0 2px 6px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05);
-  --shadow-3: 0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.07);
-  --shadow-4: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.07);
+  /* ── Shadows (deep, dark) ── */
+  --shadow-1: 0 1px 3px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.40);
+  --shadow-2: 0 4px 14px rgba(0,0,0,0.65), 0 2px 5px rgba(0,0,0,0.45);
+  --shadow-3: 0 8px 28px rgba(0,0,0,0.75), 0 4px 10px rgba(0,0,0,0.50);
+  --shadow-4: 0 16px 52px rgba(0,0,0,0.85), 0 8px 18px rgba(0,0,0,0.55);
 
-  /* ── Glow accents ── */
-  --glow-primary: 0 0 0 3px rgba(15, 108, 189, 0.18);
-  --glow-success: 0 0 0 3px rgba(16, 124, 16, 0.15);
-  --glow-danger:  0 0 0 3px rgba(197, 15, 31, 0.13);
-
-  /* ── Mica-lite (Windows 11 Fluent inspired backdrop) ── */
-  --mica-bg:      rgba(255, 255, 255, 0.82);
-  --mica-blur:    16px;
-  --mica-sidebar: rgba(255, 255, 255, 0.94);
-
-  /* ── Spacing scale ── */
+  /* ── Spacing ── */
   --sp-1:  4px;
   --sp-2:  8px;
   --sp-3:  12px;
@@ -79,10 +103,9 @@
   --dur-3: 240ms;
   --ease-out:    cubic-bezier(0, 0, 0.2, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-  --transition: var(--dur-2) var(--ease-out);
+  --transition:  var(--dur-2) var(--ease-out);
 }
 
-/* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --dur-1: 0ms;
