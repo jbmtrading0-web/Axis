@@ -17,6 +17,7 @@
     <input type="month" id="mes-picker" aria-label="Selecionar mês" tabindex="-1" />
   </div>
 </div>
+<button class="btn-help" onclick="openHelp('dashboard')" aria-label="Ajuda sobre o Dashboard">❓ Ajuda</button>
 {% endblock %}
 
 {% block content %}
@@ -278,8 +279,16 @@ async function carregarDashboard() {
   document.getElementById('val-despesas').textContent = formatBRL(data.despesas_realizadas);
   document.getElementById('val-saldo').textContent    = formatBRL(data.saldo_disponivel);
   document.getElementById('val-previsto').textContent = formatBRL(data.saldo_previsto);
-  document.getElementById('val-receitas-prev').textContent = `Previsto: ${formatBRL(data.receitas_previstas)}`;
-  document.getElementById('val-despesas-prev').textContent = `Previsto: ${formatBRL(data.despesas_previstas)}`;
+  const agendadoLabel = statusLabel('previsto');
+  document.getElementById('val-receitas-prev').textContent = `${agendadoLabel}: ${formatBRL(data.receitas_previstas)}`;
+  document.getElementById('val-despesas-prev').textContent = `${agendadoLabel}: ${formatBRL(data.despesas_previstas)}`;
+
+  // Update mode-aware labels
+  const realLabel = statusLabel('realizado');
+  const agLabel = statusLabel('previsto');
+  document.querySelectorAll('.lbl-realizado').forEach(el => el.textContent = realLabel.toLowerCase());
+  document.querySelectorAll('.lbl-agendado').forEach(el => el.textContent = agLabel.toLowerCase());
+  document.querySelectorAll('.lbl-realizado-text').forEach(el => el.textContent = realLabel);
 
   colorirSaldo('val-saldo',   data.saldo_disponivel);
   colorirSaldo('val-previsto', data.saldo_previsto);
@@ -458,7 +467,7 @@ function renderUltimas(list) {
       <td>${escHtml(t.descricao)}</td>
       <td>${t.categoria_nome ? `<span class="badge" style="background:${t.categoria_cor}20;color:${t.categoria_cor}">${escHtml(t.categoria_nome)}</span>` : '—'}</td>
       <td>${escHtml(t.conta_nome || t.cartao_nome || '—')}</td>
-      <td><span class="badge badge-${t.status}">${t.status === 'realizado' ? 'Realizado' : 'Previsto'}</span></td>
+      <td><span class="badge ${statusBadgeClass(t.status)}">${statusLabel(t.status)}</span></td>
       <td class="text-right ${t.tipo === 'receita' ? 'positive' : 'negative'}">
         ${t.tipo === 'receita' ? '+' : '-'}${formatBRL(t.valor)}
       </td>

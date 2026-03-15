@@ -2,7 +2,27 @@
 {% block title %}Configurações – Axis{% endblock %}
 {% block page_title %}Configurações{% endblock %}
 
+{% block topbar_actions %}
+<button class="btn-help" onclick="openHelp('configuracoes')" aria-label="Ajuda sobre Configurações">❓ Ajuda</button>
+{% endblock %}
+
 {% block content %}
+<!-- UI Mode -->
+<div class="card">
+  <h2 class="card-title">Modo de exibição</h2>
+  <div class="mode-toggle-row">
+    <div class="mode-toggle-info">
+      <div class="mode-toggle-label">Modo avançado <span class="mode-badge" id="mode-badge-label">Simples</span></div>
+      <div class="mode-toggle-desc">No modo simples, os termos são mais fáceis (Confirmado/Agendado) e menos opções aparecem. No modo avançado, você vê todos os campos e termos técnicos (Realizado/Previsto).</div>
+    </div>
+    <label class="toggle-switch" aria-label="Ativar modo avançado">
+      <input type="checkbox" id="toggle-modo-avancado" onchange="alternarModo(this)" />
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+</div>
+
+<!-- About -->
 <div class="card">
   <h2 class="card-title">Sobre o Axis</h2>
   <p class="text-muted">Sistema de controle financeiro pessoal — 100% offline.</p>
@@ -12,4 +32,30 @@
     <li>🔒 Sem internet, sem nuvem, seus dados ficam só no seu computador</li>
   </ul>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function initConfiguracoes() {
+  const cfg = await apiGet('/api/configuracoes');
+  if (!cfg) return;
+  const isAvancado = cfg.ui_mode === 'avancado';
+  document.getElementById('toggle-modo-avancado').checked = isAvancado;
+  document.getElementById('mode-badge-label').textContent = isAvancado ? 'Avançado' : 'Simples';
+}
+
+async function alternarModo(checkbox) {
+  const novoModo = checkbox.checked ? 'avancado' : 'simples';
+  const result = await apiPut('/api/configuracoes/ui_mode', { valor: novoModo });
+  if (result) {
+    window.UI_MODE = novoModo;
+    document.getElementById('mode-badge-label').textContent = novoModo === 'avancado' ? 'Avançado' : 'Simples';
+    showToast(`Modo ${novoModo === 'avancado' ? 'avançado' : 'simples'} ativado.`, 'success');
+  } else {
+    checkbox.checked = !checkbox.checked;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initConfiguracoes);
+</script>
 {% endblock %}
