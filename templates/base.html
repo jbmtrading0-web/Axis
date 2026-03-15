@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Axis – Finanças{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}" />
 </head>
 <body>
   <!-- Sidebar -->
@@ -31,6 +32,9 @@
       </a>
       <a href="{{ url_for('faturas') }}" class="nav-item {% if request.endpoint == 'faturas' %}active{% endif %}">
         <span class="nav-icon">📋</span><span>Faturas</span>
+      </a>
+      <a href="{{ url_for('configuracoes') }}" class="nav-item {% if request.endpoint == 'configuracoes' %}active{% endif %}">
+        <span class="nav-icon">⚙️</span><span>Configurações</span>
       </a>
     </nav>
   </aside>
