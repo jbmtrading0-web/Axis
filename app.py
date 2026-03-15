@@ -264,6 +264,40 @@ def _ensure_db():
             init_db()
 
 
+def get_config(chave, default=None):
+    """Return a configuration value from the configuracoes table."""
+    row = query_db("SELECT valor FROM configuracoes WHERE chave=?", (chave,), one=True)
+    return row['valor'] if row else default
+
+
+def set_config(chave, valor):
+    """Upsert a configuration value in the configuracoes table."""
+    execute_db(
+        "INSERT INTO configuracoes (chave, valor) VALUES (?,?) "
+        "ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor",
+        (chave, str(valor))
+    )
+
+
+# ─────────────────────────────────────────────
+# Template context
+# ─────────────────────────────────────────────
+
+@app.context_processor
+def inject_config():
+    """Inject global config values into every template."""
+    try:
+        ui_mode = get_config('ui_mode', 'simples')
+        onboarding_completed = get_config('onboarding_completed', 'false')
+    except Exception:
+        ui_mode = 'simples'
+        onboarding_completed = 'false'
+    return {
+        'ui_mode': ui_mode,
+        'onboarding_completed': onboarding_completed,
+    }
+
+
 # ─────────────────────────────────────────────
 # Page routes
 # ─────────────────────────────────────────────
@@ -897,6 +931,35 @@ def api_contas_cartoes():
         'contas': [dict(c) for c in contas],
         'cartoes': [dict(c) for c in cartoes],
     })
+
+
+# ─────────────────────────────────────────────
+# API – Configurações
+# ─────────────────────────────────────────────
+
+@app.route('/api/configuracoes', methods=['GET'])
+def api_configuracoes_get():
+    """Return all configuration key/value pairs."""
+    rows = query_db("SELECT chave, valor FROM configuracoes")
+    return jsonify({r['chave']: r['valor'] for r in rows})
+
+
+@app.route('/api/configuracoes/<chave>', methods=['PUT'])
+def api_configuracoes_set(chave):
+    """Update a configuration value."""
+    allowed = {'onboarding_completed', 'ui_mode'}
+    if chave not in allowed:
+        abort(400, description=f'Chave desconhecida: {chave}')
+    data = request.get_json(silent=True) or {}
+    valor = data.get('valor')
+    if valor is None:
+        abort(400, description='Campo "valor" é obrigatório.')
+    if chave == 'ui_mode' and valor not in ('simples', 'avancado'):
+        abort(400, description='ui_mode deve ser "simples" ou "avancado".')
+    if chave == 'onboarding_completed' and valor not in ('true', 'false'):
+        abort(400, description='onboarding_completed deve ser "true" ou "false".')
+    set_config(chave, valor)
+    return jsonify({'chave': chave, 'valor': valor})
 
 
 # ─────────────────────────────────────────────

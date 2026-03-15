@@ -76,6 +76,32 @@ function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
 }
 
+/**
+ * Return the display label for a transaction status based on the current UI mode.
+ * Simple mode: 'realizado' → 'Confirmado', 'previsto' → 'Agendado'
+ * Advanced mode: 'realizado' → 'Realizado', 'previsto' → 'Previsto'
+ * @param {string} status - 'realizado' or 'previsto'
+ * @returns {string}
+ */
+function statusLabel(status) {
+  if (window.UI_MODE !== 'avancado') {
+    return status === 'realizado' ? 'Confirmado' : 'Agendado';
+  }
+  return status === 'realizado' ? 'Realizado' : 'Previsto';
+}
+
+/**
+ * Return the CSS badge class for a status value, respecting UI mode.
+ * @param {string} status
+ * @returns {string}
+ */
+function statusBadgeClass(status) {
+  if (window.UI_MODE !== 'avancado') {
+    return status === 'realizado' ? 'badge-confirmado' : 'badge-agendado';
+  }
+  return status === 'realizado' ? 'badge-realizado' : 'badge-previsto';
+}
+
 // ─────────────────────────────────────────────
 // HTTP helpers
 // ─────────────────────────────────────────────
