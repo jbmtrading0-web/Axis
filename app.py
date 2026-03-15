@@ -40,7 +40,8 @@ def close_db(e=None):
 
 def init_db():
     db = get_db()
-    with app.open_resource('schema.sql', mode='r') as f:
+    schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
+    with open(schema_path, encoding='utf-8') as f:
         db.executescript(f.read())
     db.commit()
 
