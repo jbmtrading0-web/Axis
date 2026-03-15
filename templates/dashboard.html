@@ -13,28 +13,101 @@
 {% endblock %}
 
 {% block content %}
-<!-- Summary cards -->
+<!-- Summary cards – data-ink design -->
 <div class="summary-grid" id="summary-grid">
-  <div class="card summary-card summary-receita">
-    <div class="summary-label">Receitas (realizadas)</div>
-    <div class="summary-value" id="val-receitas">R$ 0,00</div>
-    <div class="summary-sub" id="val-receitas-prev"></div>
+
+  <!-- Receitas -->
+  <div class="card summary-card summary-receita sk-host" id="card-receitas">
+    <div class="sk-card" aria-hidden="true">
+      <div class="sk-line" style="width:55%"></div>
+      <div class="sk-line" style="width:75%;height:26px;margin-top:4px"></div>
+      <div class="sk-line" style="width:45%;height:8px;margin-top:2px"></div>
+      <div class="sk-line" style="width:100%;height:4px;margin-top:6px;border-radius:100px"></div>
+      <div class="sk-spark"></div>
+    </div>
+    <div class="summary-card-content">
+      <div class="summary-top">
+        <span class="summary-label">Receitas realizadas</span>
+        <span class="summary-delta" id="delta-receitas" aria-live="polite"></span>
+      </div>
+      <div class="summary-value" id="val-receitas">—</div>
+      <div class="summary-sub" id="val-receitas-prev"></div>
+      <div class="summary-progress-wrap" aria-hidden="true">
+        <div class="summary-progress-fill" id="prog-receitas"></div>
+      </div>
+      <div class="summary-spark" id="spark-receitas"></div>
+    </div>
   </div>
-  <div class="card summary-card summary-despesa">
-    <div class="summary-label">Despesas (realizadas)</div>
-    <div class="summary-value" id="val-despesas">R$ 0,00</div>
-    <div class="summary-sub" id="val-despesas-prev"></div>
+
+  <!-- Despesas -->
+  <div class="card summary-card summary-despesa sk-host" id="card-despesas">
+    <div class="sk-card" aria-hidden="true">
+      <div class="sk-line" style="width:55%"></div>
+      <div class="sk-line" style="width:75%;height:26px;margin-top:4px"></div>
+      <div class="sk-line" style="width:45%;height:8px;margin-top:2px"></div>
+      <div class="sk-line" style="width:100%;height:4px;margin-top:6px;border-radius:100px"></div>
+      <div class="sk-spark"></div>
+    </div>
+    <div class="summary-card-content">
+      <div class="summary-top">
+        <span class="summary-label">Despesas realizadas</span>
+        <span class="summary-delta" id="delta-despesas" aria-live="polite"></span>
+      </div>
+      <div class="summary-value" id="val-despesas">—</div>
+      <div class="summary-sub" id="val-despesas-prev"></div>
+      <div class="summary-progress-wrap" aria-hidden="true">
+        <div class="summary-progress-fill" id="prog-despesas"></div>
+      </div>
+      <div class="summary-spark" id="spark-despesas"></div>
+    </div>
   </div>
-  <div class="card summary-card summary-saldo">
-    <div class="summary-label">Saldo Disponível</div>
-    <div class="summary-value" id="val-saldo">R$ 0,00</div>
-    <div class="summary-sub">Realizado</div>
+
+  <!-- Saldo disponível -->
+  <div class="card summary-card summary-saldo sk-host" id="card-saldo">
+    <div class="sk-card" aria-hidden="true">
+      <div class="sk-line" style="width:55%"></div>
+      <div class="sk-line" style="width:75%;height:26px;margin-top:4px"></div>
+      <div class="sk-line" style="width:45%;height:8px;margin-top:2px"></div>
+      <div class="sk-line" style="width:100%;height:4px;margin-top:6px;border-radius:100px"></div>
+      <div class="sk-spark"></div>
+    </div>
+    <div class="summary-card-content">
+      <div class="summary-top">
+        <span class="summary-label">Saldo disponível</span>
+        <span class="summary-delta" id="delta-saldo" aria-live="polite"></span>
+      </div>
+      <div class="summary-value" id="val-saldo">—</div>
+      <div class="summary-sub">Realizado</div>
+      <div class="summary-progress-wrap" aria-hidden="true">
+        <div class="summary-progress-fill" id="prog-saldo"></div>
+      </div>
+      <div class="summary-spark" id="spark-saldo"></div>
+    </div>
   </div>
-  <div class="card summary-card summary-previsto">
-    <div class="summary-label">Saldo Previsto</div>
-    <div class="summary-value" id="val-previsto">R$ 0,00</div>
-    <div class="summary-sub">Receitas − Despesas previstas</div>
+
+  <!-- Saldo previsto -->
+  <div class="card summary-card summary-previsto sk-host" id="card-previsto">
+    <div class="sk-card" aria-hidden="true">
+      <div class="sk-line" style="width:55%"></div>
+      <div class="sk-line" style="width:75%;height:26px;margin-top:4px"></div>
+      <div class="sk-line" style="width:45%;height:8px;margin-top:2px"></div>
+      <div class="sk-line" style="width:100%;height:4px;margin-top:6px;border-radius:100px"></div>
+      <div class="sk-spark"></div>
+    </div>
+    <div class="summary-card-content">
+      <div class="summary-top">
+        <span class="summary-label">Saldo previsto</span>
+        <span class="summary-delta" id="delta-previsto" aria-live="polite"></span>
+      </div>
+      <div class="summary-value" id="val-previsto">—</div>
+      <div class="summary-sub">Receitas − Despesas previstas</div>
+      <div class="summary-progress-wrap" aria-hidden="true">
+        <div class="summary-progress-fill" id="prog-previsto"></div>
+      </div>
+      <div class="summary-spark" id="spark-previsto"></div>
+    </div>
   </div>
+
 </div>
 
 <!-- Charts -->
@@ -80,7 +153,27 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard-ui.js') }}"></script>
 <script>
+// ── Fluent colour palette for charts ──
+var CHART_COLORS = {
+  receitas: '#107C10',
+  despesas: '#C50F1F',
+  primary:  '#0F6CBD',
+  gridLine: '#f0eeec',
+  tickColor:'#9B9997',
+  legendColor: '#424242',
+};
+
+var SPARK_COLORS = {
+  receitas: '#107C10',
+  despesas: '#C50F1F',
+  saldo:    '#0F6CBD',
+  previsto: '#D97706',
+};
+
+var SKELETON_IDS = ['card-receitas', 'card-despesas', 'card-saldo', 'card-previsto'];
+
 let chartDespCat = null, chartBarras = null;
 
 function clearActivePeriod() {
@@ -100,6 +193,8 @@ function initMes() {
     clearActivePeriod();
     carregarDashboard();
   });
+  // Show skeletons immediately on first load
+  showSkeletons(SKELETON_IDS);
   carregarDashboard();
 }
 
@@ -116,19 +211,62 @@ function setPeriodRelativo(offset) {
 
 async function carregarDashboard() {
   const mes = document.getElementById('mes-picker').value;
-  const data = await apiGet(`/api/dashboard?mes=${mes}`);
-  if (!data) return;
 
+  // Show skeletons while fetching
+  showSkeletons(SKELETON_IDS);
+
+  const data = await apiGet(`/api/dashboard?mes=${mes}`);
+  if (!data) {
+    hideSkeletons(SKELETON_IDS);
+    return;
+  }
+
+  // ── Fill values ──
   document.getElementById('val-receitas').textContent = formatBRL(data.receitas_realizadas);
   document.getElementById('val-despesas').textContent = formatBRL(data.despesas_realizadas);
-  document.getElementById('val-saldo').textContent = formatBRL(data.saldo_disponivel);
+  document.getElementById('val-saldo').textContent    = formatBRL(data.saldo_disponivel);
   document.getElementById('val-previsto').textContent = formatBRL(data.saldo_previsto);
   document.getElementById('val-receitas-prev').textContent = `Previsto: ${formatBRL(data.receitas_previstas)}`;
   document.getElementById('val-despesas-prev').textContent = `Previsto: ${formatBRL(data.despesas_previstas)}`;
 
-  colorirSaldo('val-saldo', data.saldo_disponivel);
+  colorirSaldo('val-saldo',   data.saldo_disponivel);
   colorirSaldo('val-previsto', data.saldo_previsto);
 
+  // ── Sparklines (from barras_mensais – last 6 months already loaded) ──
+  var bars = data.barras_mensais || [];
+  var recVals   = bars.map(b => b.receitas);
+  var despVals  = bars.map(b => b.despesas);
+  var saldoVals = bars.map(b => b.receitas - b.despesas);
+  // Forecast trend: ratio of despesas/receitas per month shows pressure on saldo previsto
+  var prevVals  = bars.map(b => b.receitas > 0 ? b.receitas - b.despesas : 0);
+
+  drawSparkline('spark-receitas', recVals,   SPARK_COLORS.receitas);
+  drawSparkline('spark-despesas', despVals,  SPARK_COLORS.despesas);
+  drawSparkline('spark-saldo',    saldoVals, SPARK_COLORS.saldo);
+  drawSparkline('spark-previsto', prevVals,  SPARK_COLORS.previsto);
+
+  // ── Delta % vs previous month ──
+  if (bars.length >= 2) {
+    var prev = bars[bars.length - 2];
+    var curr = bars[bars.length - 1];
+    renderDelta('delta-receitas', curr.receitas, prev.receitas, false);
+    renderDelta('delta-despesas', curr.despesas, prev.despesas, true);   // inverse: up = bad
+    renderDelta('delta-saldo',
+      curr.receitas - curr.despesas, prev.receitas - prev.despesas, false);
+    renderDelta('delta-previsto', data.saldo_previsto, curr.receitas - curr.despesas, false);
+  }
+
+  // ── Progress bars (realized vs forecast) ──
+  renderProgress('prog-receitas', data.receitas_realizadas, data.receitas_previstas);
+  renderProgress('prog-despesas', data.despesas_realizadas, data.despesas_previstas);
+  var saldoMax = Math.max(Math.abs(data.saldo_disponivel), Math.abs(data.saldo_previsto), 1);
+  renderProgress('prog-saldo',    data.saldo_disponivel, saldoMax);
+  renderProgress('prog-previsto', data.saldo_previsto,   saldoMax);
+
+  // ── Reveal cards ──
+  hideSkeletons(SKELETON_IDS);
+
+  // ── Charts ──
   renderChartDespCat(data.despesas_por_categoria);
   renderChartBarras(data.barras_mensais);
   renderUltimas(data.ultimas_transacoes);
@@ -136,7 +274,7 @@ async function carregarDashboard() {
 
 function colorirSaldo(id, valor) {
   const el = document.getElementById(id);
-  el.classList.remove('positive','negative');
+  el.classList.remove('positive', 'negative');
   el.classList.add(valor >= 0 ? 'positive' : 'negative');
 }
 
@@ -152,14 +290,30 @@ function renderChartDespCat(cats) {
         data: cats.map(c => c.total),
         backgroundColor: cats.map(c => c.cor),
         borderWidth: 2,
-        borderColor: '#fff'
+        borderColor: '#ffffff',
+        hoverBorderWidth: 3,
+        hoverOffset: 6,
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '62%',
       plugins: {
-        legend: { position: 'right', labels: { color: '#374151', font: { size: 12 } } },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${formatBRL(ctx.raw)}` } }
+        legend: {
+          position: 'right',
+          labels: {
+            color: CHART_COLORS.legendColor,
+            font: { size: 12, family: "'Segoe UI', system-ui, sans-serif" },
+            boxWidth: 12,
+            padding: 12,
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${formatBRL(ctx.raw)}`
+          }
+        }
       }
     }
   });
@@ -173,19 +327,56 @@ function renderChartBarras(bars) {
     data: {
       labels: bars.map(b => b.label),
       datasets: [
-        { label: 'Receitas', data: bars.map(b => b.receitas), backgroundColor: '#28a745cc', borderRadius: 4 },
-        { label: 'Despesas', data: bars.map(b => b.despesas), backgroundColor: '#dc3545cc', borderRadius: 4 }
+        {
+          label: 'Receitas',
+          data: bars.map(b => b.receitas),
+          backgroundColor: 'rgba(16,124,16,0.70)',
+          borderRadius: 5,
+          borderSkipped: false,
+        },
+        {
+          label: 'Despesas',
+          data: bars.map(b => b.despesas),
+          backgroundColor: 'rgba(197,15,31,0.70)',
+          borderRadius: 5,
+          borderSkipped: false,
+        }
       ]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#374151' } },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${formatBRL(ctx.raw)}` } }
+        legend: {
+          labels: {
+            color: CHART_COLORS.legendColor,
+            font: { size: 12, family: "'Segoe UI', system-ui, sans-serif" },
+            boxWidth: 14,
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${formatBRL(ctx.raw)}`
+          }
+        }
       },
       scales: {
-        x: { ticks: { color: '#9ca3af' }, grid: { color: '#f3f4f6' } },
-        y: { ticks: { color: '#9ca3af', callback: v => formatBRL(v) }, grid: { color: '#f3f4f6' } }
+        x: {
+          ticks: {
+            color: CHART_COLORS.tickColor,
+            font: { size: 11 },
+          },
+          grid: { color: CHART_COLORS.gridLine, drawBorder: false },
+        },
+        y: {
+          ticks: {
+            color: CHART_COLORS.tickColor,
+            font: { size: 11 },
+            callback: v => formatBRL(v),
+          },
+          grid: { color: CHART_COLORS.gridLine, drawBorder: false },
+          border: { dash: [4, 4] },
+        }
       }
     }
   });
