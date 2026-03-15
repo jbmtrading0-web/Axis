@@ -884,11 +884,6 @@ tfoot td {
 }
 
 /* Color accent top-gradient line (replaces thick left border) */
-.summary-receita,
-.summary-despesa,
-.summary-saldo,
-.summary-previsto { border-left: none; }
-
 .summary-receita::before,
 .summary-despesa::before,
 .summary-saldo::before,
