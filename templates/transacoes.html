@@ -82,13 +82,6 @@ let todasCategorias = [], todasContas = [], todosCartoes = [];
 
 async function initTransacoes() {
   await carregarSelects();
-  // Default: current month
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
-  document.getElementById('f-inicio').value = `${y}-${m}-01`;
-  document.getElementById('f-fim').value = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
   await carregarTransacoes();
 }
 
@@ -259,11 +252,17 @@ function buildFormTransacao(t) {
       <details class="form-details">
         <summary>Recorrência / Parcelas</summary>
         <div class="form-row mt-2">
-          <div class="form-group">
-            <label>Parcelas (0 = sem parcelamento)</label>
-            <input type="number" name="total_parcelas" min="0" max="60" value="0" />
+          <div class="form-group" style="flex:0 0 auto">
+            <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+              <input type="checkbox" id="chk-parcelado" onchange="toggleParcelado(this)" style="width:auto" />
+              Parcelado
+            </label>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="grp-total-parcelas" style="display:none">
+            <label>Qtd. parcelas (mín. 2)</label>
+            <input type="number" name="total_parcelas" id="inp-total-parcelas" min="2" max="60" value="2" />
+          </div>
+          <div class="form-group" id="grp-meses-recorrencia" style="">
             <label>Repetir por (meses)</label>
             <input type="number" name="meses_recorrencia" min="0" max="60" value="0" />
           </div>
@@ -275,6 +274,18 @@ function buildFormTransacao(t) {
       </div>
     </form>
   `;
+}
+
+function toggleParcelado(chk) {
+  const grpParcelas = document.getElementById('grp-total-parcelas');
+  const grpRecorrencia = document.getElementById('grp-meses-recorrencia');
+  if (chk.checked) {
+    grpParcelas.style.display = '';
+    grpRecorrencia.style.display = 'none';
+  } else {
+    grpParcelas.style.display = 'none';
+    grpRecorrencia.style.display = '';
+  }
 }
 
 function onTipoChange(sel) {
@@ -317,7 +328,8 @@ async function salvarTransacao(e, id) {
   for (const [k, v] of fd.entries()) body[k] = v;
 
   // Clean up 0 values
-  if (!body.total_parcelas || body.total_parcelas === '0') delete body.total_parcelas;
+  const chkParcelado = document.getElementById('chk-parcelado');
+  if (!chkParcelado || !chkParcelado.checked || !body.total_parcelas || body.total_parcelas === '0') delete body.total_parcelas;
   if (!body.meses_recorrencia || body.meses_recorrencia === '0') delete body.meses_recorrencia;
   if (!body.categoria_id) delete body.categoria_id;
   if (!body.subcategoria_id) delete body.subcategoria_id;
@@ -343,7 +355,40 @@ async function editarTransacao(id) {
 }
 
 async function excluirTransacao(id) {
-  if (!confirm('Excluir esta transação?')) return;
+  const t = await apiGet(`/api/transacoes/${id}`);
+  if (!t) return;
+
+  if (t.grupo_recorrencia && t.total_parcelas) {
+    openModal('Excluir Transação', `
+      <p>Esta transação faz parte de um grupo de <strong>${t.total_parcelas} parcelas</strong>.</p>
+      <p>O que você deseja excluir?</p>
+      <div class="form-actions" style="flex-direction:column;gap:.5rem">
+        <button class="btn btn-danger" data-grupo="${escHtml(t.grupo_recorrencia)}" onclick="excluirGrupo(this.dataset.grupo)">🗑️ Todas as parcelas (${t.total_parcelas})</button>
+        <button class="btn btn-outline" onclick="excluirSomenteParcela(${id})">Somente esta parcela (${t.parcela_atual}/${t.total_parcelas})</button>
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      </div>
+    `);
+  } else {
+    if (!confirm('Excluir esta transação?')) return;
+    await _doExcluirTransacao(id);
+  }
+}
+
+async function excluirSomenteParcela(id) {
+  closeModal();
+  await _doExcluirTransacao(id);
+}
+
+async function excluirGrupo(grupo) {
+  closeModal();
+  const ok = await apiDelete(`/api/transacoes/grupo/${grupo}`);
+  if (ok) {
+    showToast('Todas as parcelas excluídas', 'success');
+    carregarTransacoes();
+  }
+}
+
+async function _doExcluirTransacao(id) {
   const ok = await apiDelete(`/api/transacoes/${id}`);
   if (ok) {
     showToast('Transação excluída', 'success');

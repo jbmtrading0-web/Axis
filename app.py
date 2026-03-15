@@ -469,6 +469,8 @@ def api_transacoes_criar():
 
     if not tipo or not valor or not dt or not descricao:
         abort(400, "Campos obrigatórios: tipo, valor, data, descricao")
+    if total_parcelas is not None and total_parcelas < 2:
+        abort(400, "total_parcelas deve ser no mínimo 2")
 
     data_obj = date.fromisoformat(dt)
     ids_criados = []
@@ -590,6 +592,18 @@ def api_transacoes_delete(tid):
     execute_db("DELETE FROM transacoes WHERE id=?", (tid,))
     if fatura_id:
         recalcular_total_fatura(fatura_id)
+    return jsonify({'ok': True})
+
+
+@app.route('/api/transacoes/grupo/<grupo>', methods=['DELETE'])
+def api_transacoes_delete_grupo(grupo):
+    rows = query_db("SELECT id, fatura_id FROM transacoes WHERE grupo_recorrencia=?", (grupo,))
+    if not rows:
+        abort(404)
+    faturas = {r['fatura_id'] for r in rows if r['fatura_id']}
+    execute_db("DELETE FROM transacoes WHERE grupo_recorrencia=?", (grupo,))
+    for fid in faturas:
+        recalcular_total_fatura(fid)
     return jsonify({'ok': True})
 
 
