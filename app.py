@@ -190,9 +190,13 @@ def obter_ou_criar_fatura(cartao_id: int, data_compra: date) -> int:
     """Given a card and purchase date, return the fatura_id it belongs to.
 
     Logic:
-    - For each month cycle, the invoice period is (prev_fechamento + 1) to fechamento.
-    - If purchase_date <= fechamento of month M  →  belongs to fatura of month M.
-    - We look at the current month and adjacent months to find the right cycle.
+    - The closing date (fechamento) for a billing month is exclusive: a purchase
+      made ON the closing day belongs to the NEXT invoice, not the current one.
+    - When dias_antes_fechamento >= dia_vencimento the computed day rolls back into
+      the previous month automatically via timedelta arithmetic (e.g. venc=10,
+      dias_antes=10 → fechamento = last day of the previous month).
+    - Rule: assign data_compra to the earliest fatura M where
+      data_compra < fechamento_M.
     """
     cartao = query_db("SELECT * FROM cartoes WHERE id=?", (cartao_id,), one=True)
     if not cartao:
@@ -201,12 +205,13 @@ def obter_ou_criar_fatura(cartao_id: int, data_compra: date) -> int:
     dia_venc = cartao['dia_vencimento']
     dias_antes = cartao['dias_antes_fechamento']
 
-    # Try current, next, and previous months to find the right invoice cycle
+    # Start from the billing month that corresponds to the purchase month and
+    # iterate forward until we find the first cycle whose closing date is
+    # strictly after the purchase date (exclusive closing day).
     year = data_compra.year
     month = data_compra.month
 
     for delta in range(0, 13):
-        # Try delta months ahead
         m = month + delta
         y = year + (m - 1) // 12
         m = ((m - 1) % 12) + 1
@@ -215,14 +220,8 @@ def obter_ou_criar_fatura(cartao_id: int, data_compra: date) -> int:
         dia_venc_safe = min(dia_venc, monthrange(y, m)[1])
         vencimento = date(y, m, dia_venc_safe)
 
-        # Previous closing date (the start of this cycle)
-        pm = m - 1 if m > 1 else 12
-        py = y if m > 1 else y - 1
-        prev_fechamento = calcular_fechamento(dia_venc, dias_antes, py, pm)
-
-        # Does the purchase fall in this cycle?
-        inicio_ciclo = prev_fechamento + timedelta(days=1)
-        if inicio_ciclo <= data_compra <= fechamento:
+        # Closing day is exclusive: purchase must be strictly before fechamento.
+        if data_compra < fechamento:
             mes_ref = f"{y:04d}-{m:02d}"
             return _garantir_fatura(cartao_id, mes_ref, fechamento, vencimento)
 
