@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+{% block title %}Transações – Axis{% endblock %}
+{% block page_title %}Transações{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary" onclick="abrirModalTransacao()">+ Nova Transação</button>
+<button class="btn btn-outline" onclick="abrirModalTransferencia()">⇄ Transferência</button>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="card filters-card">
+  <div class="filters-row">
+    <div class="filter-group">
+      <label>De</label>
+      <input type="date" id="f-inicio" />
+    </div>
+    <div class="filter-group">
+      <label>Até</label>
+      <input type="date" id="f-fim" />
+    </div>
+    <div class="filter-group">
+      <label>Tipo</label>
+      <select id="f-tipo">
+        <option value="">Todos</option>
+        <option value="receita">Receita</option>
+        <option value="despesa">Despesa</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Status</label>
+      <select id="f-status">
+        <option value="">Todos</option>
+        <option value="realizado">Realizado</option>
+        <option value="previsto">Previsto</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Categoria</label>
+      <select id="f-categoria">
+        <option value="">Todas</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Conta</label>
+      <select id="f-conta">
+        <option value="">Todas</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="carregarTransacoes()">Filtrar</button>
+    <button class="btn btn-outline btn-sm" onclick="limparFiltros()">Limpar</button>
+  </div>
+</div>
+
+<!-- Transactions table -->
+<div class="card">
+  <div class="table-wrap">
+    <table id="tbl-transacoes">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Descrição</th>
+          <th>Categoria</th>
+          <th>Subcategoria</th>
+          <th>Conta/Cartão</th>
+          <th>Status</th>
+          <th class="text-right">Valor</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-transacoes">
+        <tr><td colspan="8" class="text-center text-muted">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let todasCategorias = [], todasContas = [], todosCartoes = [];
+
+async function initTransacoes() {
+  await carregarSelects();
+  // Default: current month
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+  document.getElementById('f-inicio').value = `${y}-${m}-01`;
+  document.getElementById('f-fim').value = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
+  await carregarTransacoes();
+}
+
+async function carregarSelects() {
+  [todasCategorias, { contas: todasContas, cartoes: todosCartoes }] = await Promise.all([
+    apiGet('/api/categorias'),
+    apiGet('/api/contas_cartoes')
+  ]);
+
+  const fCat = document.getElementById('f-categoria');
+  fCat.innerHTML = '<option value="">Todas</option>' +
+    todasCategorias.map(c => `<option value="${c.id}">${escHtml(c.nome)}</option>`).join('');
+
+  const fConta = document.getElementById('f-conta');
+  fConta.innerHTML = '<option value="">Todas</option>' +
+    todasContas.map(c => `<option value="${c.id}">${escHtml(c.nome)}</option>`).join('');
+}
+
+async function carregarTransacoes() {
+  const params = new URLSearchParams();
+  const inicio = document.getElementById('f-inicio').value;
+  const fim = document.getElementById('f-fim').value;
+  const tipo = document.getElementById('f-tipo').value;
+  const status = document.getElementById('f-status').value;
+  const cat = document.getElementById('f-categoria').value;
+  const conta = document.getElementById('f-conta').value;
+
+  if (inicio) params.set('inicio', inicio);
+  if (fim) params.set('fim', fim);
+  if (tipo) params.set('tipo', tipo);
+  if (status) params.set('status', status);
+  if (cat) params.set('categoria_id', cat);
+  if (conta) params.set('conta_id', conta);
+
+  const lista = await apiGet('/api/transacoes?' + params.toString());
+  renderTransacoes(lista || []);
+}
+
+function renderTransacoes(list) {
+  const tbody = document.getElementById('tbody-transacoes');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Nenhuma transação encontrada</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(t => `
+    <tr>
+      <td>${formatDate(t.data)}</td>
+      <td>${escHtml(t.descricao)}${t.total_parcelas ? `<small class="text-muted"> (${t.parcela_atual}/${t.total_parcelas})</small>` : ''}</td>
+      <td>${t.categoria_nome ? `<span class="badge" style="background:${t.categoria_cor}20;color:${t.categoria_cor}">${escHtml(t.categoria_nome)}</span>` : '—'}</td>
+      <td>${escHtml(t.subcategoria_nome || '—')}</td>
+      <td>${escHtml(t.conta_nome || t.cartao_nome || '—')}</td>
+      <td><span class="badge badge-${t.status}">${t.status === 'realizado' ? 'Realizado' : 'Previsto'}</span></td>
+      <td class="text-right ${t.tipo === 'receita' ? 'positive' : 'negative'}">
+        ${t.tipo === 'receita' ? '+' : '-'}${formatBRL(t.valor)}
+      </td>
+      <td class="actions-cell">
+        <button class="btn btn-xs btn-outline" onclick="editarTransacao(${t.id})">✏️</button>
+        <button class="btn btn-xs btn-danger" onclick="excluirTransacao(${t.id})">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function limparFiltros() {
+  document.getElementById('f-inicio').value = '';
+  document.getElementById('f-fim').value = '';
+  document.getElementById('f-tipo').value = '';
+  document.getElementById('f-status').value = '';
+  document.getElementById('f-categoria').value = '';
+  document.getElementById('f-conta').value = '';
+  carregarTransacoes();
+}
+
+function abrirModalTransacao(t = null) {
+  const titulo = t ? 'Editar Transação' : 'Nova Transação';
+  openModal(titulo, buildFormTransacao(t));
+}
+
+function buildFormTransacao(t) {
+  const catsReceita = todasCategorias.filter(c => c.tipo === 'receita');
+  const catsDespesa = todasCategorias.filter(c => c.tipo === 'despesa');
+  const todasCats = todasCategorias;
+
+  const contasOpts = todasContas.map(c => `<option value="${c.id}" ${t && t.conta_id == c.id ? 'selected' : ''}>${escHtml(c.nome)}</option>`).join('');
+  const cartoesOpts = todosCartoes.map(c => `<option value="${c.id}" ${t && t.cartao_id == c.id ? 'selected' : ''}>${escHtml(c.nome)}</option>`).join('');
+
+  const catsOpts = (tipo) => todasCats.filter(c => !tipo || c.tipo === tipo).map(c =>
+    `<option value="${c.id}" ${t && t.categoria_id == c.id ? 'selected' : ''}>${escHtml(c.nome)}</option>`
+  ).join('');
+
+  const hoje = new Date().toISOString().split('T')[0];
+
+  return `
+    <form id="form-transacao" onsubmit="salvarTransacao(event, ${t ? t.id : 'null'})">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tipo *</label>
+          <select name="tipo" required onchange="onTipoChange(this)">
+            <option value="receita" ${!t || t.tipo==='receita' ? 'selected':''}>Receita</option>
+            <option value="despesa" ${t && t.tipo==='despesa' ? 'selected':''}>Despesa</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Valor (R$) *</label>
+          <input type="number" name="valor" step="0.01" min="0.01" value="${t ? t.valor : ''}" required />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Data *</label>
+          <input type="date" name="data" value="${t ? t.data : hoje}" required />
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            <option value="previsto" ${!t || t.status==='previsto' ? 'selected':''}>Previsto</option>
+            <option value="realizado" ${t && t.status==='realizado' ? 'selected':''}>Realizado</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Descrição *</label>
+        <input type="text" name="descricao" value="${t ? escHtml(t.descricao) : ''}" required />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Categoria</label>
+          <select name="categoria_id" id="sel-categoria" onchange="carregarSubcategorias()">
+            <option value="">Sem categoria</option>
+            ${catsOpts(t ? t.tipo : null)}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Subcategoria</label>
+          <select name="subcategoria_id" id="sel-subcategoria">
+            <option value="">Sem subcategoria</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Pagamento via</label>
+          <select name="metodo_pagamento" onchange="onMetodoChange(this)">
+            <option value="conta" ${!t || t.metodo_pagamento==='conta' ? 'selected':''}>Conta</option>
+            <option value="cartao" ${t && t.metodo_pagamento==='cartao' ? 'selected':''}>Cartão</option>
+          </select>
+        </div>
+        <div class="form-group" id="grp-conta" ${t && t.metodo_pagamento==='cartao' ? 'style="display:none"':''}>
+          <label>Conta</label>
+          <select name="conta_id">
+            <option value="">Selecione...</option>
+            ${contasOpts}
+          </select>
+        </div>
+        <div class="form-group" id="grp-cartao" ${!t || t.metodo_pagamento!=='cartao' ? 'style="display:none"':''}>
+          <label>Cartão</label>
+          <select name="cartao_id">
+            <option value="">Selecione...</option>
+            ${cartoesOpts}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Observação</label>
+        <textarea name="observacao" rows="2">${t ? escHtml(t.observacao || '') : ''}</textarea>
+      </div>
+      ${!t ? `
+      <details class="form-details">
+        <summary>Recorrência / Parcelas</summary>
+        <div class="form-row mt-2">
+          <div class="form-group">
+            <label>Parcelas (0 = sem parcelamento)</label>
+            <input type="number" name="total_parcelas" min="0" max="60" value="0" />
+          </div>
+          <div class="form-group">
+            <label>Repetir por (meses)</label>
+            <input type="number" name="meses_recorrencia" min="0" max="60" value="0" />
+          </div>
+        </div>
+      </details>` : ''}
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  `;
+}
+
+function onTipoChange(sel) {
+  // filter categories based on type
+  const tipo = sel.value;
+  const catSel = document.getElementById('sel-categoria');
+  if (catSel) {
+    const opts = todasCategorias.filter(c => c.tipo === tipo).map(c =>
+      `<option value="${c.id}">${escHtml(c.nome)}</option>`
+    ).join('');
+    catSel.innerHTML = '<option value="">Sem categoria</option>' + opts;
+    document.getElementById('sel-subcategoria').innerHTML = '<option value="">Sem subcategoria</option>';
+  }
+}
+
+function onMetodoChange(sel) {
+  document.getElementById('grp-conta').style.display = sel.value === 'conta' ? '' : 'none';
+  document.getElementById('grp-cartao').style.display = sel.value === 'cartao' ? '' : 'none';
+}
+
+async function carregarSubcategorias() {
+  const catId = document.getElementById('sel-categoria').value;
+  const sel = document.getElementById('sel-subcategoria');
+  sel.innerHTML = '<option value="">Sem subcategoria</option>';
+  if (!catId) return;
+  const cats = await apiGet('/api/categorias');
+  const cat = cats.find(c => c.id == catId);
+  if (cat && cat.subcategorias) {
+    cat.subcategorias.forEach(s => {
+      sel.innerHTML += `<option value="${s.id}">${escHtml(s.nome)}</option>`;
+    });
+  }
+}
+
+async function salvarTransacao(e, id) {
+  e.preventDefault();
+  const form = document.getElementById('form-transacao');
+  const fd = new FormData(form);
+  const body = {};
+  for (const [k, v] of fd.entries()) body[k] = v;
+
+  // Clean up 0 values
+  if (!body.total_parcelas || body.total_parcelas === '0') delete body.total_parcelas;
+  if (!body.meses_recorrencia || body.meses_recorrencia === '0') delete body.meses_recorrencia;
+  if (!body.categoria_id) delete body.categoria_id;
+  if (!body.subcategoria_id) delete body.subcategoria_id;
+  if (!body.conta_id) delete body.conta_id;
+  if (!body.cartao_id) delete body.cartao_id;
+
+  let ok;
+  if (id) {
+    ok = await apiPut(`/api/transacoes/${id}`, body);
+  } else {
+    ok = await apiPost('/api/transacoes', body);
+  }
+  if (ok) {
+    closeModal();
+    showToast(id ? 'Transação atualizada!' : 'Transação criada!', 'success');
+    carregarTransacoes();
+  }
+}
+
+async function editarTransacao(id) {
+  const t = await apiGet(`/api/transacoes/${id}`);
+  if (t) abrirModalTransacao(t);
+}
+
+async function excluirTransacao(id) {
+  if (!confirm('Excluir esta transação?')) return;
+  const ok = await apiDelete(`/api/transacoes/${id}`);
+  if (ok) {
+    showToast('Transação excluída', 'success');
+    carregarTransacoes();
+  }
+}
+
+function abrirModalTransferencia() {
+  const contasOpts = todasContas.map(c => `<option value="${c.id}">${escHtml(c.nome)}</option>`).join('');
+  const hoje = new Date().toISOString().split('T')[0];
+  openModal('Nova Transferência', `
+    <form id="form-transferencia" onsubmit="salvarTransferencia(event)">
+      <div class="form-group">
+        <label>Conta de Origem *</label>
+        <select name="conta_origem_id" required>
+          <option value="">Selecione...</option>
+          ${contasOpts}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Conta de Destino *</label>
+        <select name="conta_destino_id" required>
+          <option value="">Selecione...</option>
+          ${contasOpts}
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Valor (R$) *</label>
+          <input type="number" name="valor" step="0.01" min="0.01" required />
+        </div>
+        <div class="form-group">
+          <label>Data *</label>
+          <input type="date" name="data" value="${hoje}" required />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Descrição</label>
+        <input type="text" name="descricao" value="Transferência" />
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select name="status">
+          <option value="realizado">Realizado</option>
+          <option value="previsto">Previsto</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Transferir</button>
+      </div>
+    </form>
+  `);
+}
+
+async function salvarTransferencia(e) {
+  e.preventDefault();
+  const fd = new FormData(document.getElementById('form-transferencia'));
+  const body = {};
+  for (const [k, v] of fd.entries()) body[k] = v;
+  const ok = await apiPost('/api/transferencias', body);
+  if (ok) {
+    closeModal();
+    showToast('Transferência realizada!', 'success');
+    carregarTransacoes();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initTransacoes);
+</script>
+{% endblock %}

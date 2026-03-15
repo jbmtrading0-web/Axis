@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Cartões – Axis{% endblock %}
+{% block page_title %}Cartões de Crédito{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary" onclick="abrirModalCartao()">+ Novo Cartão</button>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th class="text-center">Vencimento (dia)</th>
+          <th class="text-center">Dias p/ Fechamento</th>
+          <th class="text-center">Dia de Fechamento</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-cartoes">
+        <tr><td colspan="5" class="text-center text-muted">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <h2 class="card-title">Como funciona o ciclo de fatura</h2>
+  <p class="text-muted">
+    Para cada cartão, você define o <strong>dia de vencimento</strong> da fatura e
+    <strong>quantos dias antes</strong> ocorre o fechamento. O sistema calcula automaticamente:
+  </p>
+  <ul class="info-list">
+    <li>📅 <strong>Fechamento</strong> = Vencimento − dias antes do fechamento</li>
+    <li>🧾 Toda compra é automaticamente atribuída à fatura correta conforme a data da compra</li>
+    <li>💳 As faturas mensais são criadas e gerenciadas automaticamente</li>
+  </ul>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function carregarCartoes() {
+  const cartoes = await apiGet('/api/cartoes');
+  const tbody = document.getElementById('tbody-cartoes');
+  if (!cartoes || !cartoes.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Nenhum cartão cadastrado</td></tr>';
+    return;
+  }
+  tbody.innerHTML = cartoes.map(c => `
+    <tr>
+      <td><strong>${escHtml(c.nome)}</strong></td>
+      <td class="text-center">Dia ${c.dia_vencimento}</td>
+      <td class="text-center">${c.dias_antes_fechamento} dias</td>
+      <td class="text-center">Dia ${c.dia_vencimento - c.dias_antes_fechamento > 0 ? c.dia_vencimento - c.dias_antes_fechamento : '(mês anterior)'}</td>
+      <td class="actions-cell">
+        <button class="btn btn-xs btn-outline" onclick="editarCartao(${c.id})">✏️</button>
+        <button class="btn btn-xs btn-danger" onclick="excluirCartao(${c.id})">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function abrirModalCartao(c = null) {
+  openModal(c ? 'Editar Cartão' : 'Novo Cartão', `
+    <form id="form-cartao" onsubmit="salvarCartao(event, ${c ? c.id : 'null'})">
+      <div class="form-group">
+        <label>Nome do Cartão *</label>
+        <input type="text" name="nome" value="${c ? escHtml(c.nome) : ''}" required autofocus placeholder="Ex: Nubank, Itaú Platinum..." />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Dia de Vencimento *</label>
+          <input type="number" name="dia_vencimento" min="1" max="31" value="${c ? c.dia_vencimento : '10'}" required />
+        </div>
+        <div class="form-group">
+          <label>Dias antes do Fechamento *</label>
+          <input type="number" name="dias_antes_fechamento" min="1" max="30" value="${c ? c.dias_antes_fechamento : '7'}" required />
+          <small class="form-hint">Ex: 7 dias → fecha dia ${c ? c.dia_vencimento - c.dias_antes_fechamento : 3}</small>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  `);
+}
+
+async function editarCartao(id) {
+  const cartoes = await apiGet('/api/cartoes');
+  const c = cartoes.find(x => x.id === id);
+  if (c) abrirModalCartao(c);
+}
+
+async function salvarCartao(e, id) {
+  e.preventDefault();
+  const fd = new FormData(document.getElementById('form-cartao'));
+  const body = {};
+  for (const [k, v] of fd.entries()) body[k] = v;
+  let ok;
+  if (id) ok = await apiPut(`/api/cartoes/${id}`, body);
+  else ok = await apiPost('/api/cartoes', body);
+  if (ok) { closeModal(); showToast('Cartão salvo!', 'success'); carregarCartoes(); }
+}
+
+async function excluirCartao(id) {
+  if (!confirm('Excluir este cartão? As faturas serão excluídas junto.')) return;
+  const ok = await apiDelete(`/api/cartoes/${id}`);
+  if (ok) { showToast('Cartão excluído', 'success'); carregarCartoes(); }
+}
+
+document.addEventListener('DOMContentLoaded', carregarCartoes);
+</script>
+{% endblock %}

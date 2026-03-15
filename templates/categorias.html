@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Categorias – Axis{% endblock %}
+{% block page_title %}Categorias{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary" onclick="abrirModalCategoria()">+ Nova Categoria</button>
+{% endblock %}
+
+{% block content %}
+<div class="two-col-grid">
+  <!-- Receitas -->
+  <div class="card">
+    <h2 class="card-title">Receitas</h2>
+    <div id="list-receitas">
+      <p class="text-muted text-center">Carregando...</p>
+    </div>
+  </div>
+  <!-- Despesas -->
+  <div class="card">
+    <h2 class="card-title">Despesas</h2>
+    <div id="list-despesas">
+      <p class="text-muted text-center">Carregando...</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function carregarCategorias() {
+  const cats = await apiGet('/api/categorias');
+  if (!cats) return;
+  renderListaCategorias('list-receitas', cats.filter(c => c.tipo === 'receita'));
+  renderListaCategorias('list-despesas', cats.filter(c => c.tipo === 'despesa'));
+}
+
+function renderListaCategorias(containerId, cats) {
+  const el = document.getElementById(containerId);
+  if (!cats.length) {
+    el.innerHTML = '<p class="text-muted text-center">Nenhuma categoria</p>';
+    return;
+  }
+  el.innerHTML = cats.map(c => `
+    <div class="categoria-item">
+      <div class="categoria-header">
+        <span class="cor-dot" style="background:${c.cor}"></span>
+        <strong>${escHtml(c.nome)}</strong>
+        <div class="item-actions">
+          <button class="btn btn-xs btn-outline" onclick="abrirModalCategoria(${c.id})">✏️</button>
+          <button class="btn btn-xs btn-danger" onclick="excluirCategoria(${c.id})">🗑️</button>
+          <button class="btn btn-xs btn-success" onclick="abrirModalSubcat(${c.id}, '${escHtml(c.nome)}')">+ Sub</button>
+        </div>
+      </div>
+      <ul class="subcat-list">
+        ${(c.subcategorias || []).map(s => `
+          <li>
+            <span>${escHtml(s.nome)}</span>
+            <div class="item-actions">
+              <button class="btn btn-xs btn-outline" onclick="editarSubcat(${s.id}, '${escHtml(s.nome)}')">✏️</button>
+              <button class="btn btn-xs btn-danger" onclick="excluirSubcat(${s.id})">🗑️</button>
+            </div>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+  `).join('');
+}
+
+function abrirModalCategoria(id = null) {
+  openModal(id ? 'Editar Categoria' : 'Nova Categoria', `
+    <form id="form-categoria" onsubmit="salvarCategoria(event, ${id})">
+      <div class="form-group">
+        <label>Nome *</label>
+        <input type="text" name="nome" id="cat-nome" required />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tipo *</label>
+          <select name="tipo" id="cat-tipo">
+            <option value="receita">Receita</option>
+            <option value="despesa">Despesa</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cor</label>
+          <input type="color" name="cor" id="cat-cor" value="#6c757d" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  `);
+
+  if (id) {
+    apiGet('/api/categorias').then(cats => {
+      const c = cats.find(x => x.id === id);
+      if (c) {
+        document.getElementById('cat-nome').value = c.nome;
+        document.getElementById('cat-tipo').value = c.tipo;
+        document.getElementById('cat-cor').value = c.cor;
+      }
+    });
+  }
+}
+
+async function salvarCategoria(e, id) {
+  e.preventDefault();
+  const fd = new FormData(document.getElementById('form-categoria'));
+  const body = {};
+  for (const [k, v] of fd.entries()) body[k] = v;
+  let ok;
+  if (id) ok = await apiPut(`/api/categorias/${id}`, body);
+  else ok = await apiPost('/api/categorias', body);
+  if (ok) { closeModal(); showToast('Categoria salva!', 'success'); carregarCategorias(); }
+}
+
+async function excluirCategoria(id) {
+  if (!confirm('Excluir categoria e todas as subcategorias?')) return;
+  const ok = await apiDelete(`/api/categorias/${id}`);
+  if (ok) { showToast('Categoria excluída', 'success'); carregarCategorias(); }
+}
+
+function abrirModalSubcat(catId, catNome) {
+  openModal(`Nova Subcategoria em "${catNome}"`, `
+    <form id="form-subcat" onsubmit="salvarSubcat(event, null, ${catId})">
+      <div class="form-group">
+        <label>Nome *</label>
+        <input type="text" name="nome" required autofocus />
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  `);
+}
+
+function editarSubcat(id, nome) {
+  openModal('Editar Subcategoria', `
+    <form id="form-subcat" onsubmit="salvarSubcat(event, ${id}, null)">
+      <div class="form-group">
+        <label>Nome *</label>
+        <input type="text" name="nome" value="${nome}" required autofocus />
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  `);
+}
+
+async function salvarSubcat(e, id, catId) {
+  e.preventDefault();
+  const fd = new FormData(document.getElementById('form-subcat'));
+  const body = {};
+  for (const [k, v] of fd.entries()) body[k] = v;
+  if (catId) body.categoria_id = catId;
+  let ok;
+  if (id) ok = await apiPut(`/api/subcategorias/${id}`, body);
+  else ok = await apiPost('/api/subcategorias', body);
+  if (ok) { closeModal(); showToast('Subcategoria salva!', 'success'); carregarCategorias(); }
+}
+
+async function excluirSubcat(id) {
+  if (!confirm('Excluir subcategoria?')) return;
+  const ok = await apiDelete(`/api/subcategorias/${id}`);
+  if (ok) { showToast('Subcategoria excluída', 'success'); carregarCategorias(); }
+}
+
+document.addEventListener('DOMContentLoaded', carregarCategorias);
+</script>
+{% endblock %}

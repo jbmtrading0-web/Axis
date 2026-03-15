@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – Axis{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block topbar_actions %}
+<div class="period-picker">
+  <label for="mes-picker">Período:</label>
+  <input type="month" id="mes-picker" />
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Summary cards -->
+<div class="summary-grid" id="summary-grid">
+  <div class="card summary-card summary-receita">
+    <div class="summary-label">Receitas (realizadas)</div>
+    <div class="summary-value" id="val-receitas">R$ 0,00</div>
+    <div class="summary-sub" id="val-receitas-prev"></div>
+  </div>
+  <div class="card summary-card summary-despesa">
+    <div class="summary-label">Despesas (realizadas)</div>
+    <div class="summary-value" id="val-despesas">R$ 0,00</div>
+    <div class="summary-sub" id="val-despesas-prev"></div>
+  </div>
+  <div class="card summary-card summary-saldo">
+    <div class="summary-label">Saldo Disponível</div>
+    <div class="summary-value" id="val-saldo">R$ 0,00</div>
+    <div class="summary-sub">Realizado</div>
+  </div>
+  <div class="card summary-card summary-previsto">
+    <div class="summary-label">Saldo Previsto</div>
+    <div class="summary-value" id="val-previsto">R$ 0,00</div>
+    <div class="summary-sub">Receitas − Despesas previstas</div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="charts-grid">
+  <div class="card chart-card">
+    <h2 class="card-title">Despesas por Categoria</h2>
+    <div class="chart-wrap">
+      <canvas id="chart-despesas-cat"></canvas>
+    </div>
+  </div>
+  <div class="card chart-card">
+    <h2 class="card-title">Receitas vs Despesas</h2>
+    <div class="chart-wrap">
+      <canvas id="chart-barras"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Latest transactions -->
+<div class="card">
+  <div class="card-header-row">
+    <h2 class="card-title">Últimas Transações</h2>
+    <a href="{{ url_for('transacoes') }}" class="btn btn-sm btn-outline">Ver todas</a>
+  </div>
+  <div class="table-wrap">
+    <table id="tbl-ultimas">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Descrição</th>
+          <th>Categoria</th>
+          <th>Conta/Cartão</th>
+          <th>Status</th>
+          <th class="text-right">Valor</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-ultimas">
+        <tr><td colspan="6" class="text-center text-muted">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let chartDespCat = null, chartBarras = null;
+
+function initMes() {
+  const picker = document.getElementById('mes-picker');
+  const now = new Date();
+  picker.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  picker.addEventListener('change', carregarDashboard);
+  carregarDashboard();
+}
+
+async function carregarDashboard() {
+  const mes = document.getElementById('mes-picker').value;
+  const data = await apiGet(`/api/dashboard?mes=${mes}`);
+  if (!data) return;
+
+  document.getElementById('val-receitas').textContent = formatBRL(data.receitas_realizadas);
+  document.getElementById('val-despesas').textContent = formatBRL(data.despesas_realizadas);
+  document.getElementById('val-saldo').textContent = formatBRL(data.saldo_disponivel);
+  document.getElementById('val-previsto').textContent = formatBRL(data.saldo_previsto);
+  document.getElementById('val-receitas-prev').textContent = `Previsto: ${formatBRL(data.receitas_previstas)}`;
+  document.getElementById('val-despesas-prev').textContent = `Previsto: ${formatBRL(data.despesas_previstas)}`;
+
+  colorirSaldo('val-saldo', data.saldo_disponivel);
+  colorirSaldo('val-previsto', data.saldo_previsto);
+
+  renderChartDespCat(data.despesas_por_categoria);
+  renderChartBarras(data.barras_mensais);
+  renderUltimas(data.ultimas_transacoes);
+}
+
+function colorirSaldo(id, valor) {
+  const el = document.getElementById(id);
+  el.classList.remove('positive','negative');
+  el.classList.add(valor >= 0 ? 'positive' : 'negative');
+}
+
+function renderChartDespCat(cats) {
+  const ctx = document.getElementById('chart-despesas-cat').getContext('2d');
+  if (chartDespCat) chartDespCat.destroy();
+  if (!cats.length) return;
+  chartDespCat = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: cats.map(c => c.nome),
+      datasets: [{
+        data: cats.map(c => c.total),
+        backgroundColor: cats.map(c => c.cor),
+        borderWidth: 2,
+        borderColor: '#1e2433'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { color: '#c8cfe0', font: { size: 12 } } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${formatBRL(ctx.raw)}` } }
+      }
+    }
+  });
+}
+
+function renderChartBarras(bars) {
+  const ctx = document.getElementById('chart-barras').getContext('2d');
+  if (chartBarras) chartBarras.destroy();
+  chartBarras = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: bars.map(b => b.label),
+      datasets: [
+        { label: 'Receitas', data: bars.map(b => b.receitas), backgroundColor: '#28a745cc', borderRadius: 4 },
+        { label: 'Despesas', data: bars.map(b => b.despesas), backgroundColor: '#dc3545cc', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#c8cfe0' } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${formatBRL(ctx.raw)}` } }
+      },
+      scales: {
+        x: { ticks: { color: '#8892a4' }, grid: { color: '#2d3447' } },
+        y: { ticks: { color: '#8892a4', callback: v => formatBRL(v) }, grid: { color: '#2d3447' } }
+      }
+    }
+  });
+}
+
+function renderUltimas(list) {
+  const tbody = document.getElementById('tbody-ultimas');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Nenhuma transação neste período</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(t => `
+    <tr>
+      <td>${formatDate(t.data)}</td>
+      <td>${escHtml(t.descricao)}</td>
+      <td>${t.categoria_nome ? `<span class="badge" style="background:${t.categoria_cor}20;color:${t.categoria_cor}">${escHtml(t.categoria_nome)}</span>` : '—'}</td>
+      <td>${escHtml(t.conta_nome || t.cartao_nome || '—')}</td>
+      <td><span class="badge badge-${t.status}">${t.status === 'realizado' ? 'Realizado' : 'Previsto'}</span></td>
+      <td class="text-right ${t.tipo === 'receita' ? 'positive' : 'negative'}">
+        ${t.tipo === 'receita' ? '+' : '-'}${formatBRL(t.valor)}
+      </td>
+    </tr>
+  `).join('');
+}
+
+document.addEventListener('DOMContentLoaded', initMes);
+</script>
+{% endblock %}

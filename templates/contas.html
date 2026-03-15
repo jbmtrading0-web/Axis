@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Contas – Axis{% endblock %}
+{% block page_title %}Contas Bancárias{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary" onclick="abrirModalConta()">+ Nova Conta</button>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th class="text-right">Saldo Inicial</th>
+          <th class="text-right">Saldo Atual</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-contas">
+        <tr><td colspan="4" class="text-center text-muted">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function carregarContas() {
+  const contas = await apiGet('/api/contas');
+  const tbody = document.getElementById('tbody-contas');
+  if (!contas || !contas.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Nenhuma conta cadastrada</td></tr>';
+    return;
+  }
+  tbody.innerHTML = contas.map(c => `
+    <tr>
+      <td><strong>${escHtml(c.nome)}</strong></td>
+      <td class="text-right">${formatBRL(c.saldo_inicial)}</td>
+      <td class="text-right ${c.saldo_atual >= 0 ? 'positive' : 'negative'}">${formatBRL(c.saldo_atual)}</td>
+      <td class="actions-cell">
+        <button class="btn btn-xs btn-outline" onclick="editarConta(${c.id})">✏️</button>
+        <button class="btn btn-xs btn-danger" onclick="excluirConta(${c.id})">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function abrirModalConta(c = null) {
+  openModal(c ? 'Editar Conta' : 'Nova Conta', `
+    <form id="form-conta" onsubmit="salvarConta(event, ${c ? c.id : 'null'})">
+      <div class="form-group">
+        <label>Nome *</label>
+        <input type="text" name="nome" value="${c ? escHtml(c.nome) : ''}" required autofocus />
+      </div>
+      <div class="form-group">
+        <label>Saldo Inicial (R$)</label>
+        <input type="number" name="saldo_inicial" step="0.01" value="${c ? c.saldo_inicial : '0'}" />
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  `);
+}
+
+async function editarConta(id) {
+  const contas = await apiGet('/api/contas');
+  const c = contas.find(x => x.id === id);
+  if (c) abrirModalConta(c);
+}
+
+async function salvarConta(e, id) {
+  e.preventDefault();
+  const fd = new FormData(document.getElementById('form-conta'));
+  const body = {};
+  for (const [k, v] of fd.entries()) body[k] = v;
+  let ok;
+  if (id) ok = await apiPut(`/api/contas/${id}`, body);
+  else ok = await apiPost('/api/contas', body);
+  if (ok) { closeModal(); showToast('Conta salva!', 'success'); carregarContas(); }
+}
+
+async function excluirConta(id) {
+  if (!confirm('Excluir esta conta? Transações vinculadas perderão o vínculo.')) return;
+  const ok = await apiDelete(`/api/contas/${id}`);
+  if (ok) { showToast('Conta excluída', 'success'); carregarContas(); }
+}
+
+document.addEventListener('DOMContentLoaded', carregarContas);
+</script>
+{% endblock %}
