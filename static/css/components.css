@@ -17,14 +17,20 @@
   top: 0; left: 0;
   width: var(--sidebar-w);
   height: 100vh;
-  background: var(--sidebar-bg);
+  background: var(--mica-sidebar, var(--color-surface));
   border-right: 1px solid var(--color-border);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-2);
   display: flex;
   flex-direction: column;
   z-index: 100;
   transition: width var(--transition);
   overflow: hidden;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .sidebar { background: var(--color-surface); }
 }
 
 .sidebar.collapsed {
@@ -223,14 +229,20 @@
   position: sticky;
   top: 0;
   height: var(--topbar-h);
-  background: var(--color-surface);
+  background: var(--mica-bg, var(--color-surface));
   border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-2);
   display: flex;
   align-items: center;
   gap: var(--sp-3);
   padding: 0 var(--sp-6);
   z-index: 90;
+  backdrop-filter: blur(var(--mica-blur));
+  -webkit-backdrop-filter: blur(var(--mica-blur));
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .topbar { background: var(--color-surface); }
 }
 
 .page-title {
@@ -282,11 +294,14 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-1);
-  transition: box-shadow var(--transition);
+  box-shadow: var(--shadow-2);
+  transition: box-shadow var(--transition), transform var(--transition);
 }
 
-.card:hover { box-shadow: var(--shadow-2); }
+.card:hover {
+  box-shadow: var(--shadow-3);
+  transform: translateY(-1px);
+}
 
 .card-header {
   display: flex;
@@ -727,7 +742,7 @@ tfoot td {
   color: var(--color-primary);
 }
 .toast-warning {
-  border-color: #D97706;
+  border-color: var(--color-forecast);
   background: var(--color-warning-subtle);
   color: var(--color-warning);
 }
@@ -747,35 +762,192 @@ tfoot td {
   gap: var(--sp-4);
 }
 
+/* ── Enhanced summary card (data-ink) ── */
 .summary-card {
   padding: var(--sp-4) var(--sp-5);
   position: relative;
   overflow: hidden;
+  cursor: default;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+
+.summary-card:hover {
+  box-shadow: var(--shadow-4);
+  transform: translateY(-3px);
+}
+
+/* Card inner content */
+.summary-card-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: opacity var(--dur-1) var(--ease-out);
+}
+
+/* Header row: label + delta badge */
+.summary-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
 }
 
 .summary-label {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.summary-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 3px;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.summary-sub {
+  font-size: 11px;
   color: var(--color-text-muted);
   margin-bottom: var(--sp-2);
 }
 
-.summary-value {
-  font-size: 22px;
+/* Delta badge */
+.summary-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  font-size: 10.5px;
   font-weight: 700;
-  color: var(--color-text);
-  margin-bottom: 4px;
-  letter-spacing: -0.3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.5;
 }
 
-.summary-sub { font-size: 11.5px; color: var(--color-text-muted); }
+.summary-delta.delta-up {
+  color: var(--color-success);
+  background: var(--color-success-subtle);
+}
 
+.summary-delta.delta-down {
+  color: var(--color-danger);
+  background: var(--color-danger-subtle);
+}
+
+.summary-delta.delta-neutral {
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+}
+
+/* Thin progress bar (realized vs forecast) */
+.summary-progress-wrap {
+  height: 4px;
+  background: var(--color-border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  margin-bottom: var(--sp-2);
+}
+
+.summary-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  width: 0%;
+  transition: width var(--dur-3) var(--ease-out);
+}
+
+.summary-receita .summary-progress-fill  { background: var(--color-success); }
+.summary-despesa .summary-progress-fill  { background: var(--color-danger); }
+.summary-saldo   .summary-progress-fill  { background: var(--color-primary); }
+.summary-previsto .summary-progress-fill { background: var(--color-forecast); }
+
+/* Sparkline area */
+.summary-spark {
+  margin-top: auto;
+  height: 44px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+}
+
+.summary-spark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Color accent stripe */
 .summary-receita  { border-left: 3px solid var(--color-success); }
 .summary-despesa  { border-left: 3px solid var(--color-danger); }
 .summary-saldo    { border-left: 3px solid var(--color-primary); }
-.summary-previsto { border-left: 3px solid #D97706; }
+.summary-previsto { border-left: 3px solid var(--color-forecast); }
+
+/* ── Skeleton loader ── */
+
+/* Host: card that supports skeleton overlay */
+.sk-host { position: relative; overflow: hidden; }
+
+.sk-card {
+  position: absolute;
+  inset: 0;
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Hide skeleton once done */
+.sk-host.sk-done .sk-card { display: none; }
+
+/* Hide real content while skeleton is visible */
+.sk-host:not(.sk-done) .summary-card-content { visibility: hidden; }
+
+/* Shimmer base */
+.sk-line {
+  height: 10px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-2) 0%,
+    #ece9e6 40%,
+    var(--color-surface-2) 80%
+  );
+  background-size: 300% 100%;
+  animation: sk-shimmer 1.5s ease-in-out infinite;
+}
+
+.sk-spark {
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-2) 0%,
+    #ece9e6 40%,
+    var(--color-surface-2) 80%
+  );
+  background-size: 300% 100%;
+  animation: sk-shimmer 1.5s ease-in-out infinite;
+  margin-top: auto;
+}
+
+@keyframes sk-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-line,
+  .sk-spark { animation: none; background: var(--color-border); }
+}
 
 /* ══════════════════════════════════════════
    CHARTS GRID

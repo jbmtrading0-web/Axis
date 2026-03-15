@@ -392,6 +392,58 @@ def api_dashboard():
 
 
 # ─────────────────────────────────────────────
+# API – Dashboard time-series (read-only)
+# ─────────────────────────────────────────────
+
+@app.route('/api/dashboard/serie')
+def api_dashboard_serie():
+    """Read-only endpoint: monthly aggregate time-series for sparklines.
+
+    Query params:
+      months  int   1-24, default 6
+      end     YYYY-MM, default current month
+    """
+    try:
+        months = max(1, min(int(request.args.get('months', 6)), 24))
+    except (ValueError, TypeError):
+        months = 6
+    end = request.args.get('end', date.today().strftime('%Y-%m'))
+    try:
+        ano, m = map(int, end.split('-'))
+        date(ano, m, 1)  # validate
+    except (ValueError, TypeError):
+        abort(400)
+
+    series = []
+    for i in range(months - 1, -1, -1):
+        total_months = ano * 12 + (m - 1) - i
+        y = total_months // 12
+        mo = total_months % 12 + 1
+        mi = f"{y:04d}-{mo:02d}-01"
+        uf = monthrange(y, mo)[1]
+        mf = f"{y:04d}-{mo:02d}-{uf:02d}"
+        r = query_db(
+            "SELECT COALESCE(SUM(valor),0) as v FROM transacoes"
+            " WHERE tipo='receita' AND status='realizado' AND data BETWEEN ? AND ?",
+            (mi, mf), one=True
+        )['v']
+        despesas_val = query_db(
+            "SELECT COALESCE(SUM(valor),0) as v FROM transacoes"
+            " WHERE tipo='despesa' AND status='realizado' AND data BETWEEN ? AND ?",
+            (mi, mf), one=True
+        )['v']
+        series.append({
+            'month': f"{y:04d}-{mo:02d}",
+            'label': f"{mo:02d}/{y}",
+            'receitas': r,
+            'despesas': despesas_val,
+            'saldo': round(r - despesas_val, 2),
+        })
+
+    return jsonify({'months': months, 'end': end, 'series': series})
+
+
+# ─────────────────────────────────────────────
 # API – Transações
 # ─────────────────────────────────────────────
 

@@ -16,7 +16,7 @@
   --border:       var(--color-border);
   --green:        var(--color-success);
   --red:          var(--color-danger);
-  --yellow:       #D97706;
+  --yellow:       var(--color-forecast);
   --shadow:       var(--shadow-2);
   --transition:   var(--dur-2) var(--ease-out);
   --radius:       var(--radius-lg);
@@ -24,7 +24,8 @@
 
 /* ── Base ── */
 html, body {
-  background: var(--color-bg);
+  background: linear-gradient(145deg, #f3f6f9 0%, #eef1f5 60%, #f3f5f7 100%);
+  background-attachment: fixed;
   color: var(--color-text);
 }
 
