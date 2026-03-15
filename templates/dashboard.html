@@ -87,11 +87,19 @@ function clearActivePeriod() {
   document.querySelectorAll('.btn-period').forEach(b => b.classList.remove('active'));
 }
 
+const MONTH_KEY = 'axis.dashboard.month';
+
 function initMes() {
   const picker = document.getElementById('mes-picker');
   const now = new Date();
-  picker.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  picker.addEventListener('change', () => { clearActivePeriod(); carregarDashboard(); });
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const saved = localStorage.getItem(MONTH_KEY);
+  picker.value = saved || currentMonth;
+  picker.addEventListener('change', () => {
+    localStorage.setItem(MONTH_KEY, picker.value);
+    clearActivePeriod();
+    carregarDashboard();
+  });
   carregarDashboard();
 }
 
@@ -100,6 +108,7 @@ function setPeriodRelativo(offset) {
   const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
   const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   document.getElementById('mes-picker').value = val;
+  localStorage.setItem(MONTH_KEY, val);
   document.querySelectorAll('.btn-period').forEach(b => b.classList.remove('active'));
   if (offset === 0) document.getElementById('btn-este-mes').classList.add('active');
   carregarDashboard();
