@@ -4,45 +4,112 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Axis – Finanças{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}" />
 </head>
 <body>
+
   <!-- Sidebar -->
-  <aside class="sidebar" id="sidebar">
+  <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
     <div class="sidebar-header">
-      <span class="logo-icon">💰</span>
-      <span class="logo-text">Axis</span>
+      <svg class="sidebar-logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+      <span class="sidebar-logo-text">Axis</span>
     </div>
+
     <nav class="sidebar-nav">
-      <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
-        <span class="nav-icon">📊</span><span>Dashboard</span>
+      <a href="{{ url_for('dashboard') }}"
+         class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}"
+         title="Dashboard">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </span>
+        <span class="nav-label">Dashboard</span>
       </a>
-      <a href="{{ url_for('transacoes') }}" class="nav-item {% if request.endpoint == 'transacoes' %}active{% endif %}">
-        <span class="nav-icon">💳</span><span>Transações</span>
+
+      <a href="{{ url_for('transacoes') }}"
+         class="nav-item {% if request.endpoint == 'transacoes' %}active{% endif %}"
+         title="Transações">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </span>
+        <span class="nav-label">Transações</span>
       </a>
-      <a href="{{ url_for('categorias') }}" class="nav-item {% if request.endpoint == 'categorias' %}active{% endif %}">
-        <span class="nav-icon">🏷️</span><span>Categorias</span>
+
+      <a href="{{ url_for('categorias') }}"
+         class="nav-item {% if request.endpoint == 'categorias' %}active{% endif %}"
+         title="Categorias">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        </span>
+        <span class="nav-label">Categorias</span>
       </a>
-      <a href="{{ url_for('contas') }}" class="nav-item {% if request.endpoint == 'contas' %}active{% endif %}">
-        <span class="nav-icon">🏦</span><span>Contas</span>
+
+      <a href="{{ url_for('contas') }}"
+         class="nav-item {% if request.endpoint == 'contas' %}active{% endif %}"
+         title="Contas">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        </span>
+        <span class="nav-label">Contas</span>
       </a>
-      <a href="{{ url_for('cartoes') }}" class="nav-item {% if request.endpoint == 'cartoes' %}active{% endif %}">
-        <span class="nav-icon">💳</span><span>Cartões</span>
+
+      <a href="{{ url_for('cartoes') }}"
+         class="nav-item {% if request.endpoint == 'cartoes' %}active{% endif %}"
+         title="Cartões">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </span>
+        <span class="nav-label">Cartões</span>
       </a>
-      <a href="{{ url_for('faturas') }}" class="nav-item {% if request.endpoint == 'faturas' %}active{% endif %}">
-        <span class="nav-icon">📋</span><span>Faturas</span>
+
+      <a href="{{ url_for('faturas') }}"
+         class="nav-item {% if request.endpoint == 'faturas' %}active{% endif %}"
+         title="Faturas">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </span>
+        <span class="nav-label">Faturas</span>
       </a>
-      <a href="{{ url_for('configuracoes') }}" class="nav-item {% if request.endpoint == 'configuracoes' %}active{% endif %}">
-        <span class="nav-icon">⚙️</span><span>Configurações</span>
+
+      <a href="{{ url_for('configuracoes') }}"
+         class="nav-item {% if request.endpoint == 'configuracoes' %}active{% endif %}"
+         title="Configurações">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+        </span>
+        <span class="nav-label">Configurações</span>
       </a>
     </nav>
+
+    <div class="sidebar-footer">
+      <button class="sidebar-collapse-btn" id="sidebar-collapse-btn"
+              onclick="toggleSidebarCollapse()"
+              aria-label="Recolher menu"
+              title="Recolher menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        <span class="collapse-label">Recolher</span>
+      </button>
+    </div>
   </aside>
 
   <!-- Main area -->
-  <div class="main-wrapper">
+  <div class="main-wrapper" id="main-wrapper">
     <header class="topbar">
-      <button class="btn-menu" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+      <button class="btn-menu" onclick="toggleSidebar()" aria-label="Abrir menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
       <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
       <div class="topbar-actions">{% block topbar_actions %}{% endblock %}</div>
     </header>
@@ -52,21 +119,61 @@
   </div>
 
   <!-- Toast container -->
-  <div id="toast-container"></div>
+  <div id="toast-container" role="region" aria-label="Notificações" aria-live="polite"></div>
 
-  <!-- Modal overlay -->
-  <div class="modal-overlay" id="modal-overlay" onclick="closeModal()"></div>
-  <div class="modal" id="modal" role="dialog" aria-modal="true">
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal-overlay" onclick="handleBackdropClick()" aria-hidden="true"></div>
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
     <div class="modal-header">
       <h3 id="modal-title">Título</h3>
-      <button class="modal-close" onclick="closeModal()" aria-label="Fechar">✕</button>
+      <button class="modal-close" onclick="closeModal()" aria-label="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
     <div class="modal-body" id="modal-body"></div>
   </div>
 
   <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/ui/modal.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/ui/toast.js') }}"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+  <script>
+    (function () {
+      var SIDEBAR_KEY = 'axis.ui.sidebarCollapsed';
+      var sidebar  = document.getElementById('sidebar');
+      var wrapper  = document.getElementById('main-wrapper');
+      var btn      = document.getElementById('sidebar-collapse-btn');
+
+      function applyCollapsed(collapsed) {
+        if (collapsed) {
+          sidebar.classList.add('collapsed');
+          wrapper.classList.add('sidebar-collapsed');
+          if (btn) btn.setAttribute('aria-label', 'Expandir menu');
+        } else {
+          sidebar.classList.remove('collapsed');
+          wrapper.classList.remove('sidebar-collapsed');
+          if (btn) btn.setAttribute('aria-label', 'Recolher menu');
+        }
+      }
+
+      window.toggleSidebarCollapse = function () {
+        var isCollapsed = sidebar.classList.contains('collapsed');
+        applyCollapsed(!isCollapsed);
+        try { localStorage.setItem(SIDEBAR_KEY, !isCollapsed ? '1' : '0'); } catch (e) {}
+      };
+
+      try {
+        var saved = localStorage.getItem(SIDEBAR_KEY);
+        if (saved === '1') applyCollapsed(true);
+      } catch (e) {}
+    }());
+  </script>
+
   {% block scripts %}{% endblock %}
 </body>
 </html>
