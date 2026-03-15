@@ -1,17 +1,22 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}Axis – Finanças{% endblock %}</title>
+  <title>{% block title %}Axis â€“ FinanÃ§as{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}" />
+  <script>
+    // Injected by fix: keep onboarding state across pages
+    window.UI_MODE = "{{ ui_mode }}";
+    window.ONBOARDING_COMPLETED = "{{ onboarding_completed }}";
+  </script>
 </head>
 <body>
 
   <!-- Sidebar -->
-  <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
+  <aside class="sidebar" id="sidebar" aria-label="NavegaÃ§Ã£o principal">
     <div class="sidebar-header">
       <svg class="sidebar-logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -33,11 +38,11 @@
 
       <a href="{{ url_for('transacoes') }}"
          class="nav-item {% if request.endpoint == 'transacoes' %}active{% endif %}"
-         title="Transações">
+         title="TransaÃ§Ãµes">
         <span class="nav-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
         </span>
-        <span class="nav-label">Transações</span>
+        <span class="nav-label">TransaÃ§Ãµes</span>
       </a>
 
       <a href="{{ url_for('categorias') }}"
@@ -60,11 +65,11 @@
 
       <a href="{{ url_for('cartoes') }}"
          class="nav-item {% if request.endpoint == 'cartoes' %}active{% endif %}"
-         title="Cartões">
+         title="CartÃµes">
         <span class="nav-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
         </span>
-        <span class="nav-label">Cartões</span>
+        <span class="nav-label">CartÃµes</span>
       </a>
 
       <a href="{{ url_for('faturas') }}"
@@ -78,11 +83,11 @@
 
       <a href="{{ url_for('configuracoes') }}"
          class="nav-item {% if request.endpoint == 'configuracoes' %}active{% endif %}"
-         title="Configurações">
+         title="ConfiguraÃ§Ãµes">
         <span class="nav-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
         </span>
-        <span class="nav-label">Configurações</span>
+        <span class="nav-label">ConfiguraÃ§Ãµes</span>
       </a>
     </nav>
 
@@ -118,13 +123,13 @@
   </div>
 
   <!-- Toast container -->
-  <div id="toast-container" role="region" aria-label="Notificações" aria-live="polite"></div>
+  <div id="toast-container" role="region" aria-label="NotificaÃ§Ãµes" aria-live="polite"></div>
 
   <!-- Modal -->
   <div class="modal-overlay" id="modal-overlay" onclick="handleBackdropClick()" aria-hidden="true"></div>
   <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
     <div class="modal-header">
-      <h3 id="modal-title">Título</h3>
+      <h3 id="modal-title">TÃ­tulo</h3>
       <button class="modal-close" onclick="closeModal()" aria-label="Fechar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18"/>
@@ -135,10 +140,10 @@
     <div class="modal-body" id="modal-body"></div>
   </div>
 
-  <!-- ══════════════════════════════════════════
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
        ONBOARDING WIZARD
-  ══════════════════════════════════════════ -->
-  <div class="onboarding-overlay" id="onboarding-overlay" role="dialog" aria-modal="true" aria-label="Configuração inicial">
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+  <div class="onboarding-overlay" id="onboarding-overlay" role="dialog" aria-modal="true" aria-label="ConfiguraÃ§Ã£o inicial">
     <div class="onboarding-modal" id="onboarding-modal">
       <div class="onboarding-header">
         <div class="onboarding-progress" id="onboarding-progress" aria-label="Progresso"></div>
@@ -147,22 +152,22 @@
       </div>
       <div class="onboarding-body" id="onboarding-body"></div>
       <div class="onboarding-footer">
-        <button class="btn btn-outline" id="ob-btn-back" onclick="obBack()" style="visibility:hidden">← Voltar</button>
+        <button class="btn btn-outline" id="ob-btn-back" onclick="obBack()" style="visibility:hidden">â† Voltar</button>
         <div class="onboarding-footer-right">
-          <button class="btn btn-primary" id="ob-btn-next" onclick="obNext()">Continuar →</button>
+          <button class="btn btn-primary" id="ob-btn-next" onclick="obNext()">Continuar â†’</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
        HELP DRAWER
-  ══════════════════════════════════════════ -->
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div class="help-overlay" id="help-overlay" onclick="closeHelp()"></div>
   <div class="help-drawer" id="help-drawer" role="complementary" aria-label="Ajuda contextual">
     <div class="help-drawer-header">
-      <span class="help-drawer-title">❓ Ajuda — <span id="help-drawer-page"></span></span>
-      <button class="modal-close" onclick="closeHelp()" aria-label="Fechar ajuda">✕</button>
+      <span class="help-drawer-title">â“ Ajuda â€” <span id="help-drawer-page"></span></span>
+      <button class="modal-close" onclick="closeHelp()" aria-label="Fechar ajuda">âœ•</button>
     </div>
     <div class="help-drawer-body" id="help-drawer-body"></div>
   </div>
@@ -208,3 +213,4 @@
   {% block scripts %}{% endblock %}
 </body>
 </html>
+
