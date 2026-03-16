@@ -1,6 +1,8 @@
 /* ─── Axis Design Tokens – Dark Neon Premium ─── */
 
 :root {
+  color-scheme: dark;
+
   /* ── Deep backgrounds ── */
   --bg-0:    #030712;
   --bg-1:    #070d1a;
