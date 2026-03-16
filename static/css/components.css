@@ -506,6 +506,15 @@ input[type="color"] { padding: 3px 5px; height: 34px; cursor: pointer; }
 textarea { resize: vertical; min-height: 64px; }
 select option { background: #0a1020; color: var(--color-text); }
 
+/* Remove number-input spinners (Chrome/Edge/Safari) */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Firefox */
+input[type="number"] { -moz-appearance: textfield; }
+
 .field-hint { font-size: 11.5px; color: var(--color-text-muted); margin-top: 2px; }
 .field-error { font-size: 11.5px; color: var(--color-danger); margin-top: 2px; }
 
