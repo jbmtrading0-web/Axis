@@ -323,11 +323,14 @@ input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.18);
+  background: rgba(8, 14, 30, 0.8);
+  color: var(--color-text);
 }
 input[type="color"] { padding: 4px 6px; height: 36px; cursor: pointer; }
 textarea { resize: vertical; min-height: 64px; }
 select option { background: #0a1020; color: var(--color-text); }
 input::placeholder, textarea::placeholder { color: var(--color-text-disabled); }
+input::selection, textarea::selection { background: rgba(79, 142, 247, 0.35); color: var(--color-text); }
 
 /* ─── Modal ─── */
 .modal-overlay {
